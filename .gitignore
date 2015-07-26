@@ -1,8 +1,11 @@
+*.*~
+
 # Compiled Object files
 *.slo
 *.lo
 *.o
 *.obj
+*.d
 
 # Precompiled Headers
 *.gch
@@ -26,3 +29,12 @@
 *.exe
 *.out
 *.app
+
+# ROOT
+*.root
+
+# mod files
+modDateELIZA1.txt
+modDateELIZA2.txt
+modDatePROJECT.txt
+modDatePROJECTA.txt
