@@ -38,3 +38,7 @@ modDateELIZA1.txt
 modDateELIZA2.txt
 modDatePROJECT.txt
 modDatePROJECTA.txt
+
+# temporary folder
+project/
+projecta/
