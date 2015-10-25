@@ -18,21 +18,18 @@
 static const ULong64_t gcLowMark  = 1099511627776;
 static const ULong64_t gcHighMark = 3*1099511627776;
 
+static const Int_t     gcUid[4]            = {000, 001, 002, 003};
+static const Int_t     gcGid[4]            = {000, 001, 002, 003};
+
 // -- input files
-static const Char_t*   gcFolder[3]       = {"alice", "rnc", "star"};
-static const Char_t*   gcStorage[5]      = {"eliza6", "eliza14", "eliza15", "eliza17", "project"}; 
-
-static const Int_t     gcUid[4]          = {000, 001, 002, 003};
-static const Int_t     gcGid[4]          = {000, 001, 002, 003};
-
-static const Int_t     gcMaxFiles[3]     = {2, 2, 4};
-static const Char_t*   gcFileNames[3][4] = { {"eliza6", "eliza17", "", ""},
-					     {"eliza6", "eliza17", "", ""},
-					     {"eliza6", "eliza14", "eliza15", "eliza17"} }; 
+static const Char_t*   gcFolder[3]         = {"alice", "rnc", "star"};
+static const Char_t*   gcStorage[2]        = {"project", "projecta"}; 
 
 static const Char_t*   gcProjectFolder[3]  = {"alice", "star", "starprod"};
 
-// -- max depth to print nodes 
+static const Int_t     gcMaxFiles[3]       = {2, 2, 4};
+
+// -- max depth to print nodes po
 static const Int_t     gcMaxLevel = 6;
 
 // -- current storage folder
@@ -165,24 +162,24 @@ public:
   // -- Getter
   // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 
-  ULong64_t     GetOwnSize() { return fOwnSize; }
-  ULong64_t     GetChildSize() { return fChildSize; }
-  ULong64_t     GetSize() { return fOwnSize+fChildSize; }
+  ULong64_t     GetOwnSize()     { return fOwnSize; }
+  ULong64_t     GetChildSize()   { return fChildSize; }
+  ULong64_t     GetSize()        { return fOwnSize+fChildSize; }
 
-  Int_t         GetNOwnFiles() { return fNOwnFiles; }
+  Int_t         GetNOwnFiles()   { return fNOwnFiles; }
   Int_t         GetNChildFiles() { return fNChildFiles; }
-  Int_t         GetNFiles() { return fNOwnFiles+fNChildFiles; }
+  Int_t         GetNFiles()      { return fNOwnFiles+fNChildFiles; }
 
-  TList*        GetChildren() { return fChildren; }
+  TList*        GetChildren()    { return fChildren; }
   node*         GetChild(const Char_t* childName) { return static_cast<node*>(fChildren->FindObject(childName)); }
 
-  Int_t         GetaTime()  { return faTime; }
-  Int_t         GetcTime()  { return fcTime; }
-  Int_t         GetmTime()  { return fmTime; }
+  Int_t         GetaTime()      { return faTime; }
+  Int_t         GetcTime()      { return fcTime; }
+  Int_t         GetmTime()      { return fmTime; }
 
-  const Char_t* GetaDate()  { return GetDate(faTime); }
-  const Char_t* GetcDate()  { return GetDate(fcTime); }
-  const Char_t* GetmDate()  { return GetDate(fmTime); }
+  const Char_t* GetaDate()      { return GetDate(faTime); }
+  const Char_t* GetcDate()      { return GetDate(fcTime); }
+  const Char_t* GetmDate()      { return GetDate(fmTime); }
 
   // ___________________________________________________
   const Char_t* GetDate(UInt_t date) {
@@ -308,7 +305,7 @@ public:
     return copy;
   }
 
-// ___________________________________________________
+  // ___________________________________________________
   node* AddNodeFullCopy(node* orig, const Char_t* newTitle = "") {
     // -- add a copy of a node
     //    NOT of its children
@@ -472,63 +469,8 @@ private:
 };
 
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
-// -- read in input tree from project and elizas
+// -- read in input tree from project and projecta
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
-
-// ________________________________________________________________________________
-void processFileELIZA(ifstream &fin, TString &inFileName, node *fileRootNode) {
-  // -- loop over file and add to fileRootNode node
-
-  // -- fields of input file
-  //    >> inode filetype name uid gid size atime mtime ctime
-  TString inode;        
-  TString type;
-  TString name;
-  Int_t uid, gid;
-  ULong64_t size;
-  TString aTime;
-  TString cTime;
-  TString mTime;
-
-  Int_t atime, mtime, ctime;
-
-  // -- ignore first row of headers
-  fin.ignore(10000,'\n');
-
-  // -- Loop of file - line-by-line
-  Int_t nlines = 0;
-  while (1) {
-
-    // -- read in
-    fin >> inode >> type >> name >> uid >> gid >> size >> aTime >> mTime >> cTime;
-    
-    atime = aTime.Atoi();
-    ctime = cTime.Atoi();
-    mtime = mTime.Atoi();
-
-    // -- break at at of file
-    if (fin.eof()) {
-      printf("Processed %d lines of file %s\n", nlines, inFileName.Data());
-      break;
-    }
-    
-    // -- break if error occured during reading
-    if (!fin.good()) {
-      printf("Error after processing %d lines of file %s\n", nlines, inFileName.Data());
-      break;
-    }
-    
-    // -- if file add it to tree
-    if (!type.CompareTo("REG")) 
-      fileRootNode->AddFile(name, size, atime, ctime, mtime);
-    
-    ++nlines;
-    
-    // -- print info on status
-    if (!(nlines%100000))
-      printf("Processing line %d of file %s\n", nlines, inFileName.Data());
-  }
-}  
 
 // ________________________________________________________________________________
 void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) {
@@ -632,48 +574,79 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
   // -- Add last row , entries == 1 -> only files
   if (entries == 1)
     fileRootNode->AddFile(name, size, atime, ctime, mtime);
-  
 }
 
 // ________________________________________________________________________________
-node* processFolderELIZA(node* root, Int_t idxFolder) {
-  // -- process folder
-  
-  // -- Add folder node
-  node* folder = root->AddNode(gcFolder[idxFolder]);
+void processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode) {
+  // -- loop over file and add to fileRootNode node
 
-  for (Int_t idxFile = 0; idxFile < gcMaxFiles[idxFolder]; ++idxFile) {
+  // -- fields of input file
+  /*
+    0  uid      59535    
+    1  gid      5008    
+    2  size     3790800  
+    3  xtime    2015-07-24 18:15:56.378265  
+    4  mtime    2015-07-24 19:49:31.803646  
+    5  atime    2015-07-24 18:15:56.380693  
+    6  ctime    2015-07-24 18:15:56.378265  
+    7  pathname /global/projecta/projectdirs/starprod/embedding/AuAu20....
+  */
+  
+  ULong64_t size;
+  Int_t     entries, uid, gid;
+  TString   atimeS, ctimeS, mtimeS, xtimeS;
+  TString   atimeS2, ctimeS2, mtimeS2, xtimeS2;
+  TString   name;
+
+  // -- ignore first row of headers
+  // fin.ignore(10000,'\n');
+
+  // -- Loop of file - line-by-line
+  Int_t nlines = 0;
+  while (1) {
+
+    // -- read in
+    fin >> uid >> gid >> size >> 
+      atimeS >> atimeS2 >> 
+      mtimeS >> mtimeS2 >> 
+      ctimeS >> ctimeS2 >> 
+      xtimeS >> xtimeS2 >> name;
     
-    // -- get storage folder
-    node* dataStorage = folder->AddNode(gcFileNames[idxFolder][idxFile]);
-    
-    TString sInFile(Form("/common/%s/file_walk/joined_%s_%s_current.txt", 
-			 gcFolder[idxFolder], gcFileNames[idxFolder][idxFile], gcFolder[idxFolder]));
-    
-    // -- open input file
-    ifstream fin(sInFile);
-    if (!fin.good()) {
-      printf ("File %s couldn't be opened!", sInFile.Data());
-      return NULL; 
+    // -- break at at of file
+    if (fin.eof()) {
+      printf("Processed %d lines of file %s\n", nlines, inFileName.Data());
+      break;
     }
     
-    // -- set global storage name
-    gStorage = gcFileNames[idxFolder][idxFile];
-
-    // -- loop over folder
-    processFileELIZA(fin, sInFile, dataStorage);
+    // -- break if error occured during reading
+    if (!fin.good()) {
+      printf("Error after processing %d lines of file %s\n", nlines, inFileName.Data());
+      break;
+    }
     
-    // -- reset global storage name
-    gStorage = "";
+    UInt_t mtimeU = mtimeS.ReplaceAll("-", "").Atoi();
+    UInt_t atimeU = atimeS.ReplaceAll("-", "").Atoi();
+    UInt_t ctimeU = ctimeS.ReplaceAll("-", "").Atoi();
+    UInt_t xtimeU = xtimeS.ReplaceAll("-", "").Atoi();
 
-    // -- close input file
-    fin.close();
+    TTimeStamp mtimeT(mtimeU, 0u, 0u, kFALSE);
+    TTimeStamp atimeT(atimeU, 0u, 0u, kFALSE);
+    TTimeStamp ctimeT(ctimeU, 0u, 0u, kFALSE);
+    TTimeStamp xtimeT(xtimeU, 0u, 0u, kFALSE);
+
+    Int_t mtime = mtimeT.GetSec();
+    Int_t atime = atimeT.GetSec();
+    Int_t ctime = ctimeT.GetSec();
+    Int_t xtime = xtimeT.GetSec();
+
+    fileRootNode->AddFile(name, size, atime, ctime, mtime);
+    
+    ++nlines;
+    
+    // -- print info on status
+    if (!(nlines%100000))
+      printf("Processing line %d of file %s\n", nlines, inFileName.Data());
   }
-  
-  // -- Sum up children for toplevel
-  folder->SumAddChildren();
-
-  return folder;
 }
 
 // ________________________________________________________________________________
@@ -693,10 +666,41 @@ node* processFolderPROJECT(node* root, Int_t idxFolder) {
   }
     
   // -- set global storage name
-  gStorage = "project";
+  gStorage = gcStorage[0];
 
   // -- loop over folder
   processFilePROJECT(fin, sInFile, folder);
+
+  // -- set global storage name
+  gStorage = "";
+  
+  // -- close input file
+  fin.close();
+    
+  return folder;
+}
+
+// ________________________________________________________________________________
+node* processFolderPROJECTA(node* root, Int_t idxFolder) {
+  // -- process folder
+  
+  // -- Add folder node
+  node* folder = root->AddNode(Form("projecta_%s", gcProjectFolder[idxFolder]));
+
+  TString sInFile(Form("projecta/prjA-starprod.list"));
+    
+  // -- open input file
+  ifstream fin(sInFile);
+  if (!fin.good()) {
+    printf ("File %s couldn't be opened!", sInFile.Data());
+    return NULL; 
+  }
+    
+  // -- set global storage name
+  gStorage = gcStorage[1];
+
+  // -- loop over folder
+  processFilePROJECTA(fin, sInFile, folder);
 
   // -- set global storage name
   gStorage = "";
@@ -1237,20 +1241,16 @@ void parseGPFSDump(Int_t mode = 0) {
   // -- parse GPFS Dump and write tree file
   if (mode == 0 || mode == 2) {
     root = new node;
-    
-    // -------------------------------------------------------------------------
-    // -- loop over all outputs : alice, rnc, star - ELIZA
-    for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder) {
-      node * folder = processFolderELIZA(root, idxFolder);
-      printFolder(folder);
-    }
 
-    // -- loop over all outputs : alice, rnc, star - ELIZA
+    // -- loop over all outputs : alice, star, starprod - PROJECT
     for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder) {
       node * folder = processFolderPROJECT(root, idxFolder);
       printFolder(folder);
     }
 
+    // -- loop over all outputs : starprod - PROJECTA
+    node * folder = processFolderPROJECTA(root, 2);
+    printFolder(folder);
     
     // -------------------------------------------------------------------------
     // -- Save Parsed Tree
@@ -1262,10 +1262,13 @@ void parseGPFSDump(Int_t mode = 0) {
     }
   }
 
+  cout << " done " << endl;
+  return;
+
   // -------------------------------------------------------------------------
   // -------------------------------------------------------------------------
   // -- read tree file and print 
-  if (mode == 1 || mode ==2) {
+  if (mode == 1 || mode == 2) {
     
     TFile* fin = TFile::Open("treeOutput.root");
     if (!fin) {
