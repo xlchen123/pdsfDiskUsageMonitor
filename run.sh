@@ -1,4 +1,3 @@
-
 #!/bin/bash
 #
 # Author: Jochen Thaeder (LBNL) <jochen@thaeder.de>
@@ -6,7 +5,7 @@
 #
 ###################################################
 
-BASEPATH=/global/homes/j/jthaeder/diskUsage 
+BASEPATH=/global/homes/j/jthaeder/pdsfDiskUsageMonitor
 
 reCreateTree=0
 
@@ -37,38 +36,15 @@ for folder in $projectFolders ; do
 done
 
 # -- Get modification dates 
-#      ELIZA1 :  ELIZA 6 / 14
-#      ELIZA2 :  ELIZA 15 / 17
-modDateELIZA1=`stat -c %y /common/star/file_walk/joined_eliza14_star_current.txt | cut -d' ' -f 1`   
-modDateELIZA2=`stat -c %y /common/star/file_walk/joined_eliza15_star_current.txt | cut -d' ' -f 1`   
 modDatePROJECT=`stat -c %y /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-starprod.list | cut -d' ' -f 1` 
 modDatePROJECTA=`stat -c %y /global/projecta/statistics/tlprojecta/${projectAFile} | cut -d' ' -f 1` 
 
 # -- Get old modification dates and check if tree recreation has to be run
-if [ -f modDateELIZA1.txt ] ; then 
-    oldmodDateELIZA1=`cat modDateELIZA1.txt`
-    if [ "$oldmodDateELIZA1" != "$modDateELIZA1" ] ; then 
-	reCreateTree=1
-    fi
-else
-    reCreateTree=1
-fi
-
-if [ -f modDateELIZA2.txt ] ; then 
-    oldmodDateELIZA2=`cat modDateELIZA2.txt`
-    if [ "$oldmodDateELIZA2" != "$modDateELIZA2" ] ; then 
-	reCreateTree=1
-    fi
-else
-    reCreateTree=1
-fi
-
 if [ -f modDatePROJECT.txt ] ; then 
     oldmodDatePROJECT=`cat modDatePROJECT.txt`
     if [ "$oldmodDatePROJECT" != "$modDatePROJECT" ] ; then 
 	reCreateTree=1
     fi
-
 else
     reCreateTree=1
 fi
@@ -78,11 +54,11 @@ if [ -f modDatePROJECTA.txt ] ; then
     if [ "$oldmodDatePROJECTA" != "$modDatePROJECTA" ] ; then 
 	reCreateTree=1
     fi
-
 else
     reCreateTree=1
 fi
 
+#DEBUGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
     reCreateTree=1
 
 # -- recreate input Trees
@@ -108,9 +84,7 @@ if [ $reCreateTree -eq 1 ] ; then
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-starprod.list project/
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-star.list project/
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-alice.list project/
-        
-    echo $modDateELIZA1 > modDateELIZA1.txt
-    echo $modDateELIZA2 > modDateELIZA2.txt
+
     echo $modDatePROJECT > modDatePROJECT.txt
     echo $modDatePROJECTA > modDatePROJECTA.txt
 

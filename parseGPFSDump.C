@@ -24,6 +24,7 @@ static const Int_t     gcGid[4]            = {000, 001, 002, 003};
 // -- input files
 static const Char_t*   gcFolder[3]         = {"alice", "rnc", "star"};
 static const Char_t*   gcStorage[2]        = {"project", "projecta"}; 
+static const Char_t*   gcStoragePrefix[2]  = {"prj2", "prjA"}; 
 
 static const Char_t*   gcProjectFolder[3]  = {"alice", "star", "starprod"};
 
@@ -181,6 +182,52 @@ public:
   const Char_t* GetcDate()      { return GetDate(fcTime); }
   const Char_t* GetmDate()      { return GetDate(fmTime); }
 
+
+  // ___________________________________________________
+  void ClearChild(const Char_t* childName) {  
+    // -- clear specific child
+    
+    TString sChildName(childName);
+    sChildName.ToLower();
+
+    if (!fChildren)
+      return;
+    
+    TIter next(fChildren);
+    node *child;
+    while ((child = static_cast<node*>(next()))) {
+      if (!child)
+	continue;
+      if (!sChildName.CompareTo(child->GetName())) {
+	child->ClearChilds();
+	cout << "CLEARED  childs  " << child->GetName() << endl;
+	if (child) {
+	  delete child;
+	  child = NULL;
+	}
+	cout << " done " << endl;
+      }
+    }
+  }
+
+  // ___________________________________________________
+  void ClearChilds() {  
+    // -- clear children
+    
+    cout << "NAME   " << GetName() << endl;
+
+    if (fChildren) {
+      
+      TIter next(fChildren);
+      node *child;
+      while ((child = static_cast<node*>(next())))
+	child->ClearChilds();
+      cout << "Delete   " << GetName() << endl;
+      fChildren->Delete();
+	cout << "Delete Done  " << GetName() << endl;
+    }
+  }
+
   // ___________________________________________________
   const Char_t* GetDate(UInt_t date) {
     // -- get a human and machine sortable date
@@ -336,8 +383,7 @@ public:
     TIter next(orig->GetChildren());
     node *childOrig;
     while ((childOrig = static_cast<node*>(next())))
-      node* childOwn = AddNodeFullCopy(childOrig);
-
+      AddNodeFullCopy(childOrig);
       SumAddChildren();
   }
   
@@ -387,10 +433,28 @@ public:
 
       fout << padding << "   ]," << endl;
     }
-
     fout << padding << " }," << endl;
   }  
 
+  // ___________________________________________________
+  void PrintChildren(Int_t maxLevel = 0, Int_t currentLevel = 0) {
+    // -- print names of children down to maxLevel
+    
+    TString padding("");
+    for (Int_t idx = 0; idx < currentLevel; ++idx)
+      padding += "     ";
+    
+    fChildren->Sort();
+    
+    TIter next(fChildren);
+    node *child;
+    while ((child = static_cast<node*>(next()))) {
+      cout <<  padding << child->GetTitle() << endl;
+      if (currentLevel != maxLevel)
+	child->PrintChildren(maxLevel, currentLevel+1);
+    }
+  }
+  
   // ___________________________________________________
   void PrintTableEntries(ofstream &fout, Int_t version, const Char_t *arg1 = "") { 
     // -- print childs as table entry
@@ -467,6 +531,74 @@ private:
 
   ClassDef(node,1)
 };
+
+// --------------------------------------------------------------------------------------
+node* GetNodeProjectDirs(node* root, Int_t idxFolder);
+node* GetNodeProjectDirsA(node* root, Int_t idxFolder);
+
+node* GetNodeProject(node* root, Int_t idxFolder);
+node* GetNodeProjectA(node* root, Int_t idxFolder);
+
+void  processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode);
+void  processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode);
+
+node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder);
+
+void  printFolder(node* folder);
+void  printTable(node* rootIn, Int_t idxVersion = 1);
+void  printTableEmbeddingExt(node* embeddingExtRoot);
+
+node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage);
+// node* processUser(node* rootIn, node* rootOut, Int_t version, Int_t idxFolder);
+// node* processEmbedding(node* rootIn, node* rootOut, Int_t version);
+// node* processPicoDsts(node* rootIn, node* rootOut, Int_t version = 1);
+// node* processPwgSTAR(node* rootIn, node* rootOut, Int_t version = 1);
+
+void  parseGPFSDump(Int_t mode = 0);
+// --------------------------------------------------------------------------------------
+
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+// -- General Getter
+// -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+
+// ________________________________________________________________________________
+node* GetNodeProjectDirs(node* root, Int_t idxFolder) {
+  // -- Get the toplevel project nodes
+
+  node* topLevel = root->GetChild(Form("raw_project_%s", gcProjectFolder[idxFolder]));
+  return (topLevel) ? topLevel->GetChild("projectdirs") : root->GetChild("projectdirs");
+} 
+
+// ________________________________________________________________________________
+node* GetNodeProjectDirsA(node* root, Int_t idxFolder) {
+  // -- Get the toplevel projectA nodes
+  
+  node* topLevel = root->GetChild(Form("raw_projecta_%s", gcProjectFolder[idxFolder]));
+  if (topLevel)
+    return topLevel->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
+  else {
+    if (root->GetChild(""))
+      return root->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
+    else 
+      return NULL;
+  }
+} 
+
+// ________________________________________________________________________________
+node* GetNodeProject(node* root, Int_t idxFolder) {
+  // -- Get the toplevel project nodes
+
+  node *projectDirs = GetNodeProjectDirs(root, idxFolder);
+  return (projectDirs) ? projectDirs->GetChild(gcProjectFolder[idxFolder]) : NULL;
+} 
+
+// ________________________________________________________________________________
+node* GetNodeProjectA(node* root, Int_t idxFolder) {
+  // -- Get the toplevel projectA nodes
+  
+  node *projectDirs = GetNodeProjectDirsA(root, idxFolder);
+  return (projectDirs) ? projectDirs->GetChild(gcProjectFolder[idxFolder]) : NULL;
+} 
 
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 // -- read in input tree from project and projecta
@@ -593,7 +725,7 @@ void processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode)
   */
   
   ULong64_t size;
-  Int_t     entries, uid, gid;
+  Int_t     uid, gid;
   TString   atimeS, ctimeS, mtimeS, xtimeS;
   TString   atimeS2, ctimeS2, mtimeS2, xtimeS2;
   TString   name;
@@ -637,7 +769,7 @@ void processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode)
     Int_t mtime = mtimeT.GetSec();
     Int_t atime = atimeT.GetSec();
     Int_t ctime = ctimeT.GetSec();
-    Int_t xtime = xtimeT.GetSec();
+    //    Int_t xtime = xtimeT.GetSec();
 
     fileRootNode->AddFile(name, size, atime, ctime, mtime);
     
@@ -650,13 +782,13 @@ void processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode)
 }
 
 // ________________________________________________________________________________
-node* processFolderPROJECT(node* root, Int_t idxFolder) {
+node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
   // -- process folder
   
   // -- Add folder node
-  node* folder = root->AddNode(Form("project_%s", gcProjectFolder[idxFolder]));
+  node* folder = root->AddNode(Form("raw_%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
 
-  TString sInFile(Form("project/prj2-%s.list", gcProjectFolder[idxFolder]));
+  TString sInFile(Form("%s/%s-%s.list", gcStorage[idxStorage], gcStoragePrefix[idxStorage], gcProjectFolder[idxFolder]));
     
   // -- open input file
   ifstream fin(sInFile);
@@ -669,46 +801,32 @@ node* processFolderPROJECT(node* root, Int_t idxFolder) {
   gStorage = gcStorage[0];
 
   // -- loop over folder
-  processFilePROJECT(fin, sInFile, folder);
+  if (idxStorage == 0)
+    processFilePROJECT(fin, sInFile, folder);
+  else if (idxStorage == 1)
+    processFilePROJECTA(fin, sInFile, folder);
 
   // -- set global storage name
   gStorage = "";
   
   // -- close input file
   fin.close();
-    
-  return folder;
-}
+      
+  // -- set new folder structure
+  node* final = root->AddNode(Form("%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
 
-// ________________________________________________________________________________
-node* processFolderPROJECTA(node* root, Int_t idxFolder) {
-  // -- process folder
+  node* project;
+  if (idxStorage == 0)
+    project = GetNodeProject(folder, idxFolder);
+  else if (idxStorage == 1)
+    project = GetNodeProjectA(folder, idxFolder);
   
-  // -- Add folder node
-  node* folder = root->AddNode(Form("projecta_%s", gcProjectFolder[idxFolder]));
-
-  TString sInFile(Form("projecta/prjA-starprod.list"));
-    
-  // -- open input file
-  ifstream fin(sInFile);
-  if (!fin.good()) {
-    printf ("File %s couldn't be opened!", sInFile.Data());
-    return NULL; 
-  }
-    
-  // -- set global storage name
-  gStorage = gcStorage[1];
-
-  // -- loop over folder
-  processFilePROJECTA(fin, sInFile, folder);
-
-  // -- set global storage name
-  gStorage = "";
+  final->AddChildren(project);
   
-  // -- close input file
-  fin.close();
-    
-  return folder;
+  // -- print folder
+  printFolder(final);
+
+  return final;
 }
 
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
@@ -720,14 +838,13 @@ void printFolder(node* folder) {
   // -- print the output of a folder in the js file
 
   // -- open output file
-  ofstream fout(Form("outfile_%s.js", folder->GetName()));
+  ofstream fout(Form("output/outfile_%s.js", folder->GetName()));
   if (!fout.good()) {
-    printf ("File OutFile outfile_%s.js couldn't be opened!", folder->GetName());
+    printf ("OutFile outfile_%s.js couldn't be opened!\n", folder->GetName());
     return; 
   }
 
-  // -- Sum up children for toplevel
-  // folder->SumAddChildren();
+  printf ("OutFile outfile_%s.js\n", folder->GetName());
 
   // -- Print Tree 
   fout << "var "<< folder->GetName() << "DATA = [" << endl;
@@ -738,7 +855,7 @@ void printFolder(node* folder) {
 }
 
 // ________________________________________________________________________________
-void printTable(node* rootIn, Int_t idxVersion = 1) {
+void printTable(node* rootIn, Int_t idxVersion) {
   // -- print the output of a folder in html table
 
   // -- Sum up children for toplevel
@@ -855,56 +972,30 @@ void printTableEmbeddingExt(node* embeddingExtRoot) {
   embeddingExtRoot->PrintTableSummary(foutSum, 2);  
 
   foutSum.close();
-
 }
 
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 // -- Process use cases
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 
-
 // ________________________________________________________________________________
 node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage) {
-  // -- process storage ...
+  // -- process storage 
   
   // -- get storage rootNode
   node* storage = rootOut->AddNode(gcStorage[idxStorage]);
-  
-  // -- elizas
-  if (idxStorage < 4) {
-        // -- loop over all folder
-    for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder) {
-      node* folder = rootIn->GetChild(gcFolder[idxFolder]);
-      if (!folder)
-	continue;
-      
-      // -- proper storage
-      node* dataStorage = folder->GetChild(gcStorage[idxStorage]);
-      if (!dataStorage)
-	continue;
-      
-      // -- add children from other list here
-      storage->AddChildren(dataStorage);
-    }
+
+  // -- loop over all folder
+  for (Int_t idxFolder = 0; idxFolder < 3; ++idxFolder) {
+    node* projectdirs = (idxStorage == 0) ? GetNodeProjectDirs(rootIn, idxFolder) : GetNodeProjectDirsA(rootIn, idxFolder);
+    if (!projectdirs) 
+      continue;
+    storage->AddChildren(projectdirs);
   }
 
-  // -- project
-  else {
-      // -- loop over all folder
-    for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder) {
-      node* folder = rootIn->GetChild(Form("project_%s", gcProjectFolder[idxFolder]));
-      if (!folder)
-	continue;
-      
-      node* projectdirs = folder->GetChild("projectdirs");
-      if (!projectdirs)
-	continue;
-      
-      // -- add children to list
-      storage->AddChildren(projectdirs);
-    }
-  }
-  
+  // -- print outfile
+  printFolder(storage);
+
   return storage;
 }
 
@@ -962,7 +1053,6 @@ node* processUser(node* rootIn, node* rootOut, Int_t version, Int_t idxFolder) {
   userRoot->SumAddChildren();
  
   return userRoot;
-
 }
 
 // ________________________________________________________________________________
@@ -1227,7 +1317,7 @@ node* processPwgSTAR(node* rootIn, node* rootOut, Int_t version = 1) {
 // ---------------------------------------------------------------------------------------------------------------------------------------------  
 
 // ________________________________________________________________________________
-void parseGPFSDump(Int_t mode = 0) {
+void parseGPFSDump(Int_t mode) {
   // -- parse input file
   //    mode: 0 - parse
   //          1 - print
@@ -1243,15 +1333,15 @@ void parseGPFSDump(Int_t mode = 0) {
     root = new node;
 
     // -- loop over all outputs : alice, star, starprod - PROJECT
-    for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder) {
-      node * folder = processFolderPROJECT(root, idxFolder);
-      printFolder(folder);
-    }
+    for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder)
+      processFolder(root, 0, idxFolder);
 
     // -- loop over all outputs : starprod - PROJECTA
-    node * folder = processFolderPROJECTA(root, 2);
-    printFolder(folder);
-    
+    for (Int_t idxFolder = 2; idxFolder <3; ++idxFolder)
+      processFolder(root, 1, idxFolder);
+
+    root->PrintChildren(1);
+   
     // -------------------------------------------------------------------------
     // -- Save Parsed Tree
     TFile* outFile = TFile::Open("treeOutput.root", "RECREATE");
@@ -1269,7 +1359,7 @@ void parseGPFSDump(Int_t mode = 0) {
     
     TFile* fin = TFile::Open("treeOutput.root");
     if (!fin) {
-      printf ("File treeOutput.root couldn't be opened!");
+      printf("File treeOutput.root couldn't be opened!\n");
       return;
     }
     
@@ -1280,10 +1370,10 @@ void parseGPFSDump(Int_t mode = 0) {
     // -------------------------------------------------------------------------
     node* storage = root->AddNode("storage");
 
-    for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
-      node* folder = processStorage(root, storage, idxStorage);
-      printFolder(folder);
-    }
+    // for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage)
+    //   processStorage(root, storage, idxStorage);
+
+    return ;
 
     // -------------------------------------------------------------------------
     // -- create user only

@@ -5,11 +5,14 @@
 #
 ###################################################
 
-BASEPATH=$1
+if [ $# -eq 0 ] ; then 
+    BASEPATH=`pwd`
+else
+    BASEPATH=$1
+fi
 
-modDateELIZA1=`cat modDateELIZA1.txt`
-modDateELIZA2=`cat modDateELIZA2.txt`
 modDatePROJECT=`cat modDatePROJECT.txt`
+modDatePROJECT=`cat modDatePROJECTA.txt`
 
 now=`date +'%F %H:%m'`
 
@@ -56,14 +59,15 @@ EOL
     elif [ "${typeTable}" = "pwgstar"  ] ; then
 	dataFiles="pwgstarv1 pwgstarv2 pwgstarv3"
     elif [ "${typeTable}" = "overview"  ] ; then
-	dataFiles="alice_userv1 alice_userv2 alice_userv3"
-	dataFiles="${dataFiles} rnc_userv1 rnc_userv2 rnc_userv3"
-	dataFiles="${dataFiles} embeddingv1 embeddingv2 embeddingv3 embeddingv4 embeddingv5"
-	dataFiles="${dataFiles} picodstsv1 picodstsv2 picodstsv3"
-	dataFiles="${dataFiles} pwgstarv1 pwgstarv2 pwgstarv3"
+#	dataFiles="alice_userv1 alice_userv2 alice_userv3"
+#	dataFiles="${dataFiles} rnc_userv1 rnc_userv2 rnc_userv3"
+#	dataFiles="${dataFiles} embeddingv1 embeddingv2 embeddingv3 embeddingv4 embeddingv5"
+#	dataFiles="${dataFiles} picodstsv1 picodstsv2 picodstsv3"
+#	dataFiles="${dataFiles} pwgstarv1 pwgstarv2 pwgstarv3"
+	dataFiles="project_alice project_star project_starprod projecta_starprod"
     elif [ "${typeTable}" = "overview_input"  ] ; then
-	dataFiles="alice rnc star project_alice project_star project_starprod"
-	dataFiles="${dataFiles} eliza6 eliza14 eliza15 eliza17 project"
+	dataFiles="project_alice project_star project_starprod projecta_starprod"
+	dataFiles="${dataFiles} project projecta"
     fi
 
     if [ "${useJS}" = "YES" ] ; then
@@ -121,10 +125,8 @@ function addScript () {
     echo '     <script src="../data/outfile_'${dataFile}.js'"></script>' >> ${fileName}
 }
 
-
-
 # -----------------------------------------------------------------------------------------------------------------
-function printBar() {
+function printBarSize() {
     fileName=$1
     total=$2
     totalTB=$3
@@ -143,37 +145,29 @@ function printBar() {
 	barColor=""
     fi
 
-    echo '      <h4>'${title}'</h4>' >> ${fileName}
+    echo '      <h4>'${title} - size'</h4>' >> ${fileName}
     echo '        <div class="bar"><div class="value'${barColor}'" style="width:'${percent%00}'%;">&nbsp;&nbsp;'${usedTB}'/'${totalTB}' TB ('${percent%00}'%)</div></div>' >> ${fileName}
 }
 
 # -----------------------------------------------------------------------------------------------------------------
-function printBarElizaDisk() {
+function printBarInode() {
     fileName=$1
-    disk=$2
-    title="$3"
-    
-    total=`df | grep ${disk} | awk -F' ' '{ print $2 }'`
-    totalTB=$(echo "scale=3; ${total}/1024/1024/1024" | bc -l)
-    used=`df | grep ${disk} | awk -F' ' '{ print $3 }'`
-    usedTB=$(echo "scale=3; ${used}/1024/1024/1024" | bc -l)
-
-    printBar $fileName $total $totalTB $used $usedTB "$title"
-}
-
-# -----------------------------------------------------------------------------------------------------------------
-function printBarElizaQuota() {
-    fileName=$1
-    disk=$2
-    pwg=$3
+    total=$2
+    used=$3
     title="$4"
-    
-    total=`/usr/common/nsg/bin/getfsquota ${disk} ${pwg} | grep ${pwg} | awk -F' ' '{ print $3 }'`
-    totalTB=$(echo "scale=3; ${total}/1024" | bc -l)
-    used=`/usr/common/nsg/bin/getfsquota ${disk} ${pwg} | grep ${pwg} | awk -F' ' '{ print $2 }'`
-    usedTB=$(echo "scale=3; ${used}/1024" | bc -l)
 
-    printBar $fileName $total $totalTB $used $usedTB "$title"
+    percent=$(echo "scale=4; ${used}/${total}*100" | bc -l)
+
+    let percentINT=100*used/total
+    if [ $percentINT -ge 90 ] ; then
+	barColor=Red
+    elif [ $percentINT -ge 80 ] ; then
+	barColor=Orange
+    else
+	barColor=""
+    fi
+    echo '      <h4>'${title}' - inodes</h4>' >> ${fileName}
+    echo '        <div class="bar"><div class="value'${barColor}'" style="width:'${percent%00}'%;">&nbsp;&nbsp;'${used}'/'${total}' ('${percent%00}'%)</div></div>' >> ${fileName}
 }
 
 
@@ -182,14 +176,28 @@ function printBarElizaQuota() {
 function printBarProjectQuota() {
     fileName=$1
     disk=$2
-    title="$3"
+    title="$2"
+    
+    if [[ $# -eq 3 && "$3" == "a" ]] ; then
+	script="/usr/common/usg/bin/prjaquota"
+    else
+	script="/usr/common/usg/bin/prjquota"
+    fi
 
-    total=`/usr/common/usg/bin/prjquota $disk | tail -n 1 | awk -F' ' '{ print $3 }'`
+    total=`$script $disk | tail -n 1 | awk -F' ' '{ print $3 }'`
     totalTB=$(echo "scale=3; ${total}/1024" | bc -l)
-    used=`/usr/common/usg/bin/prjquota $disk | tail -n 1 | awk -F' ' '{ print $2 }'`
+    used=`$script $disk | tail -n 1 | awk -F' ' '{ print $2 }'`
     usedTB=$(echo "scale=3; ${used}/1024" | bc -l)
 
-    printBar $fileName $total $totalTB $used $usedTB "$title"
+    printBarSize $fileName $total $totalTB $used $usedTB "$disk"
+
+    total=`$script $disk | tail -n 1 | awk -F' ' '{ print $6 }'`
+    totalTB=$(echo "scale=3; ${total}/1024" | bc -l)
+    used=`$script $disk | tail -n 1 | awk -F' ' '{ print $5 }'`
+    usedTB=$(echo "scale=3; ${used}/1024" | bc -l)
+
+    printBarInode $fileName $total $used "$disk"
+
 }
 
 
@@ -205,9 +213,9 @@ function printLine() {
 function printEnd() {
     fileName=$1
     
-    echo '    <h3>Last Updated (ELIZAs 6/14):  '${modDateELIZA1}'</h3>' >> ${fileName}
-    echo '    <h3>Last Updated (ELIZAs 15/17): '${modDateELIZA2}'</h3>' >> ${fileName}
-    echo '    <h3>Last Updated (PROJECT):      '${modDatePROJECT}'</h3>' >> ${fileName}
+    echo '    <h3>Last Updated (PROJECT):      '${modDatePROJECT}'</h3>'  >> ${fileName}
+    echo '    <h3>Last Updated (PROJECTA):     '${modDatePROJECTA}'</h3>' >> ${fileName}
+
     echo '  </body>' >> ${fileName}
     echo '</html>' >> ${fileName}
 }
@@ -559,8 +567,9 @@ function printOverview() {
     printBegin ${typeTable} ${fileName} 
 
 cat >>${fileName} <<EOL
-    <table width="100%" cellspacing="0" cellpadding="2"><tr>
-    <td class="column">        
+
+   <table width="100%" cellspacing="0" cellpadding="2"><tr>
+    <td class="column">  <!-- ------------------------------------------------------------------------ -->
      <h3><span style="font-style:italic">STAR Embedding</span> at NERSC</h3> 
 
       <h4>trgSetupName &gt; merged fileSet &gt; production</h4>
@@ -582,7 +591,7 @@ cat >>${fileName} <<EOL
       <h4>storage &gt; trgSetupName &gt; fileSet &gt; production</h4>
       <div id="embeddingv5"></div>        
  
-    </td><td class="column">
+    </td><td class="column">   <!-- ------------------------------------------------------------------------ -->
 
       <h3><span style="font-style:italic">RNC users</span> at NERSC</h3> 
 
@@ -594,8 +603,7 @@ cat >>${fileName} <<EOL
       <div id="rncUserv3"></div>        
 
       <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
-      <!-- ---------------------------------------------------------------------- -->
- 
+     
       <h3><span style="font-style:italic">ALICE users</span> at NERSC</h3> 
 
       <h4>user (merged storage)</h4>
@@ -605,7 +613,7 @@ cat >>${fileName} <<EOL
       <h4>storage &gt; user</h4>
       <div id="aliceUserv3"></div> 
 
-    </td><td class="column">        
+    </td><td class="column">   <!-- ------------------------------------------------------------------------ -->
   
       <h3><span style="font-style:italic">STAR picoDsts</span> at NERSC</h3> 
 
@@ -617,8 +625,7 @@ cat >>${fileName} <<EOL
       <div id="picoDstsv3"></div> 
 
       <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
-      <!-- ---------------------------------------------------------------------- -->
-  
+        
       <h3><span style="font-style:italic">STAR PWG directories</span> tree at NERSC</h3> 
       <h4>PWGs (merged storage)</h4>
       <div id="pwgSTARv1"></div> 
@@ -627,7 +634,7 @@ cat >>${fileName} <<EOL
       <h4>storage &gt; PWGs</h4>
       <div id="pwgSTARv3"></div> 
 
-    </td></tr></table>
+    </td></tr></table> 
 EOL
     printEnd ${fileName}
 
@@ -639,60 +646,42 @@ EOL
     printBegin ${typeTable} ${fileName} 
 
 cat >>${fileName} <<EOL
-    <table width="100%" cellspacing="0" cellpadding="2"><tr>
-    <td class="column">        
-      <h3>Input tree: <span style="font-style:italic">RNC</span> of <span style="font-style:italic">ELIZA's</span></h3> 
-      <div id="rnc"></div>        
-      <h3>Input tree: <span style="font-style:italic">STAR</span> of <span style="font-style:italic">ELIZA's</span></h3> 
-      <div id="star"></div>        
-      <h3>Input tree: <span style="font-style:italic">ALICE</span> of <span style="font-style:italic">ELIZA's</span></h3> 
-      <div id="alice"></div>
-
-      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
-
-      <h3>Input trees: <span style="font-style:italic">STAR</span> of <span style="font-style:italic">PROJECT</span></h3> 
-      <div id="project_star"></div>        
+  <table width="100%" cellspacing="0" cellpadding="2"><tr>
+    <td class="column">   <!-- ------------------------------------------------------------------------ -->
+      <h3>Input trees: <span style="font-style:italic">STAR</span> of <span style="font-style:italic">PROJECT</span></h3>  
+         <div id="project_star"></div>     
       <h3>Input trees: <span style="font-style:italic">STARPROD</span> of <span style="font-style:italic">PROJECT</span></h3> 
       <div id="project_starprod"></div> 
       <h3>Input trees: <span style="font-style:italic">ALICE</span> of <span style="font-style:italic">PROJECT</span></h3> 
-      <div id="project_alice"></div>        
-
-
-    </td><td class="column">
-      <h3>Storage: <span style="font-style:italic">ELIZA's</span></h3> 
-      <div id="eliza6"></div>        
-      <div id="eliza14"></div>        
-      <div id="eliza15"></div>        
-      <div id="eliza17"></div> 
+     <div id="project_alice"></div>      
 
       <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
+
+      <h3>Input trees: <span style="font-style:italic">STARPROD</span> of <span style="font-style:italic">PROJECTA</span></h3> 
+          <div id="projecta_starprod"></div> 
+
+    </td><td class="column">   <!-- ------------------------------------------------------------------------ -->
       <h3>Storage: <span style="font-style:italic">PROJECT</span></h3> 
       <div id="project"></div> 
 
-    </td><td class="column">        
+      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
+      <h3>Storage: <span style="font-style:italic">PROJECTA</span></h3> 
+      <div id="projecta"></div> 
+
+    </td><td class="column">   <!-- ------------------------------------------------------------------------ -->
 EOL
    
 echo '   <h3>FillStatus (Quota): <span style="font-style:italic">PROJECT</span> ('$now')</h3>' >> ${fileName}
-printBarProjectQuota ${fileName} star star
-printBarProjectQuota ${fileName} starprod starprod
-printBarProjectQuota ${fileName} alice alice
+printBarProjectQuota ${fileName} star 
+printLine ${fileName}
+printBarProjectQuota ${fileName} starprod 
+printLine ${fileName}
+printBarProjectQuota ${fileName} alice 
 
 printLine ${fileName}
 
-echo '   <h3>FillStatus (Disk): <span style="font-style:italic">ELIZAs</span> ('$now')</h3>' >> ${fileName}
-printBarElizaDisk ${fileName} eliza6 eliza6
-printBarElizaDisk ${fileName} eliza14 eliza14
-printBarElizaDisk ${fileName} eliza15 eliza15
-printBarElizaDisk ${fileName} eliza17 eliza17
-
-printLine ${fileName}
-
-echo '   <h3>FillStatus (Quota): <span style="font-style:italic">ELIZAs</span> ('$now')</h3>' >> ${fileName}
-printBarElizaQuota ${fileName} eliza14 pwg "PWG (eliza14)"
-printBarElizaQuota ${fileName} eliza17 pwg "PWG (eliza17)"
-
-#printBarElizaQuota ${fileName} eliza6  star "STAR (eliza6)"
-#printBarElizaQuota ${fileName} eliza17 star "STAR (eliza17)"
+echo '   <h3>FillStatus (Quota): <span style="font-style:italic">PROJECTA</span> ('$now')</h3>' >> ${fileName}
+printBarProjectQuota ${fileName} starprod a
 
 cat >>${fileName} <<EOL
     </td></tr></table>
@@ -705,7 +694,8 @@ EOL
 # -------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------
 
-folderList="overview embedding embeddingSTAR userRNC userALICE picoDstSTAR pwgSTAR"
+#folderList="overview embedding embeddingSTAR userRNC userALICE picoDstSTAR pwgSTAR"
+folderList="data overview"
 
 pushd www > /dev/null
 for ii in ${folderList} ; do 
@@ -714,22 +704,22 @@ for ii in ${folderList} ; do
 done
 popd > /dev/null
 
-
 printOverview overview
 
-printEmbedding embeddingSTAR
 
-printUserEmbedding embedding
+#printEmbedding embeddingSTAR
 
-printUserRNC userRNC
-printUserALICE userALICE
+#printUserEmbedding embedding
 
-printPwgSTAR pwgSTAR
-printPicoDSTs picoDstSTAR
+#printUserRNC userRNC
+#printUserALICE userALICE
+
+#printPwgSTAR pwgSTAR
+#printPicoDSTs picoDstSTAR
 
 pushd www > /dev/null
 for ii in ${folderList} ; do 
-    chmod 644 ${ii}/*.html
+    chmod 644 ${ii}/*.*
 done
 
 cp overview/index.html .
