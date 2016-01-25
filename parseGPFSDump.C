@@ -550,7 +550,7 @@ void  printTableEmbeddingExt(node* embeddingExtRoot);
 
 node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage);
 // node* processUser(node* rootIn, node* rootOut, Int_t version, Int_t idxFolder);
-// node* processEmbedding(node* rootIn, node* rootOut, Int_t version);
+node* processEmbedding(node* rootIn, node* rootOut, Int_t version);
 // node* processPicoDsts(node* rootIn, node* rootOut, Int_t version = 1);
 // node* processPwgSTAR(node* rootIn, node* rootOut, Int_t version = 1);
 
@@ -1368,16 +1368,17 @@ void parseGPFSDump(Int_t mode) {
     // -------------------------------------------------------------------------
     // -- loop over storage disks
     // -------------------------------------------------------------------------
+#if 0
     node* storage = root->AddNode("storage");
 
-    // for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage)
-    //   processStorage(root, storage, idxStorage);
-
-    return ;
+    for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage)
+      processStorage(root, storage, idxStorage);
+#endif
 
     // -------------------------------------------------------------------------
     // -- create user only
     // -------------------------------------------------------------------------
+#if 0
     node* user = root->AddNode("user");
 
     // -- process user
@@ -1395,6 +1396,7 @@ void parseGPFSDump(Int_t mode) {
 	  printTable(folder, 2);
       }
     }
+#endif 
 
     // -------------------------------------------------------------------------
     // -- create embedding only
@@ -1421,6 +1423,8 @@ void parseGPFSDump(Int_t mode) {
       if (idxVersion == 5 || idxVersion == 2 || idxVersion == 4)
 	folder->SetMaxLevel(gcMaxLevel);
     }
+
+    return;
 
     // -------------------------------------------------------------------------
     // -- create picoDsts only
