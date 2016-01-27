@@ -12,7 +12,7 @@ else
 fi
 
 modDatePROJECT=`cat modDatePROJECT.txt`
-modDatePROJECT=`cat modDatePROJECTA.txt`
+modDatePROJECTA=`cat modDatePROJECTA.txt`
 
 now=`date +'%F %H:%m'`
 
@@ -46,25 +46,20 @@ function printBegin() {
     <link rel="stylesheet" href="../style/style.css">
 EOL
 
-    if [ "${typeTable}" = "alice_user" ] ; then
-	dataFiles="alice_userv1 alice_userv2 alice_userv3"
+    if [ "${typeTable}" = "embedding"  ] ; then
+	dataFiles="embeddingv1 embeddingv2"
+    elif [ "${typeTable}" = "alice_user" ] ; then
+	dataFiles="alice_user"
     elif [ "${typeTable}" = "rnc_user" ] ; then
-	dataFiles="rnc_userv1 rnc_userv2 rnc_userv3"
-    elif [ "${typeTable}" = "embedding"  ] ; then
-	dataFiles="embeddingv1 embeddingv2 embeddingv3 embeddingv4 embeddingv5"
-    elif [ "${typeTable}" = "embedding_user"  ] ; then
-	dataFiles="embeddingv4"
+	dataFiles="rnc_user"
     elif [ "${typeTable}" = "picodsts"  ] ; then
 	dataFiles="picodstsv1 picodstsv2 picodstsv3"
     elif [ "${typeTable}" = "pwgstar"  ] ; then
-	dataFiles="pwgstarv1 pwgstarv2 pwgstarv3"
+	dataFiles="pwgstar"
     elif [ "${typeTable}" = "overview"  ] ; then
-#	dataFiles="alice_userv1 alice_userv2 alice_userv3"
-#	dataFiles="${dataFiles} rnc_userv1 rnc_userv2 rnc_userv3"
-#	dataFiles="${dataFiles} embeddingv1 embeddingv2 embeddingv3 embeddingv4 embeddingv5"
-#	dataFiles="${dataFiles} picodstsv1 picodstsv2 picodstsv3"
-#	dataFiles="${dataFiles} pwgstarv1 pwgstarv2 pwgstarv3"
-	dataFiles="project_alice project_star project_starprod projecta_starprod"
+	dataFiles="alice_user rnc_user pwgstar"
+	dataFiles="${dataFiles} embeddingv1 embeddingv2"
+	dataFiles="${dataFiles} picodstsv1 picodstsv2 picodstsv3"
     elif [ "${typeTable}" = "overview_input"  ] ; then
 	dataFiles="project_alice project_star project_starprod projecta_starprod"
 	dataFiles="${dataFiles} project projecta"
@@ -84,36 +79,27 @@ EOL
     <table width="100%" cellspacing="0" cellpadding="2">
       <tr>
         <td class="menuTD"><a href="../overview/index.html">Overview</a></td>
-        <td class="menuTD"><a href="../embeddingSTAR/index.html">STAR embedding</a></td>
+        <td class="menuTD"><a href="../embedding/index.html">STAR embedding</a></td>
 
         <td class="menuTD"><a href="../userRNC/index.html">RNC users</a></td>
-        <td class="menuTD"><a href="../userALICE/index.html">ALICE users</a></td> 
+        <td class="menuTD"><a href="../pwgSTAR/index.html">STAR PWGs</a></td>
 
         <td class="menuTD"><a href="../picoDstSTAR/index.html">STAR picoDSTs</a></td>
-        <td class="menuTD"><a href="../pwgSTAR/index.html">STAR PWGs</a></td>
+
      </tr>
       <tr>
         <td class="menuTD"><a href="../overview/indexExt.html">Overview Input</a></td>
-        <td class="menuTD"><a href="../embeddingSTAR/indexExt.html">STAR embedding extended</a></td>
+        <td class="menuTD"><a href="../embedding/indexExt.html">STAR embedding extended</a></td>
 
-        <td class="menuTD"><a href="../userRNC/indexExt.html">RNC users extendend</a></td>
-        <td class="menuTD"><a href="../userALICE/indexExt.html">ALICE users extended</a></td> 
+        <td class="menuTD"><a href="../userALICE/index.html">ALICE users</a></td> 
 
+        <td class="menuTD">&nbsp;</td>
         <td class="menuTD"><a href="../picoDstSTAR/indexExt.html">STAR picoDSTs extended</a></td>
-        <td class="menuTD"><a href="../pwgSTAR/indexExt.html">STAR PWGs extended </a></td>
-     </tr>
-      <tr>
-        <td class="menuTD">&nbsp;</td>
-        <td class="menuTD"><a href="../embeddingSTAR/indexExt2.html">STAR embedding extended2</a></td>
 
-        <td class="menuTD">&nbsp;</td>
-        <td class="menuTD">&nbsp;</td>
-
-        <td class="menuTD">&nbsp;</td>
-        <td class="menuTD">&nbsp;</td>
      </tr>
     </table>
     <br/>
+    <div style="width:100%;height: 5px;  border-bottom:solid gray 2px;">&nbsp;</div>
 EOL
 }
 
@@ -213,6 +199,7 @@ function printLine() {
 function printEnd() {
     fileName=$1
     
+    echo '    <div style="width:100%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>' >> ${fileName}
     echo '    <h3>Last Updated (PROJECT):      '${modDatePROJECT}'</h3>'  >> ${fileName}
     echo '    <h3>Last Updated (PROJECTA):     '${modDatePROJECTA}'</h3>' >> ${fileName}
 
@@ -222,9 +209,16 @@ function printEnd() {
 
 # -----------------------------------------------------------------------------------------------------------------
 function printTable() {
-    typeTable=$1
-    version=$2
-    fileName=$3
+
+    if [ $# -eq 2 ] ; then
+	typeTable=$1
+	version=""
+	fileName=$2
+    else 
+	typeTable=$1
+	version=$2
+	fileName=$3
+    fi
 
     tableName=output/outfile_Table_${typeTable}${version}
 
@@ -234,15 +228,9 @@ function printTable() {
 	
     if [[ "${typeTable}" = "alice_user" || "${typeTable}" = "rnc_user"  ]] ; then
 	echo '<tr><th class="user">User</th>' >> ${fileName}
-	
-	if [ "${version}" = "v3" ] ; then
-	    echo '<th class="storage">Storage</th>' >> ${fileName}
-	fi
     elif [ "${typeTable}" = "embedding"  ] ; then
 	echo '<tr><th class="user">TrgSetupName</th>' >> ${fileName}
 	if [ "${version}" = "v2" ] ; then
-	    echo '<th class="storage">Storage</th>' >> ${fileName}
-	elif [ "${version}" = "v3" ] ; then
 	    tableName=output/outfile_Table_Ext_${typeTable}v1
 	    echo '<th class="user">Production</th>' >> ${fileName}
 	    echo '<th class="user">File Set</th>' >> ${fileName}
@@ -254,9 +242,6 @@ function printTable() {
 	fi
     elif [ "${typeTable}" = "pwgstar"  ] ; then
 	echo '<tr><th class="user">PWG</th>' >> ${fileName}
-	if [ "${version}" = "v3" ] ; then
-	    echo '<th class="storage">Storage</th>' >> ${fileName}
-	fi
     fi
 
     echo '<th class="size">Size (GB)</th><th class="nFiles">N Files</th><th class="time">Created</th><th class="time">Last Mod.</th><th class="time">Last Access</th></tr>' >> ${fileName}
@@ -277,7 +262,6 @@ function printTable() {
 # -----------------------------------------------------------------------------------------------------------------
 function printUserRNC() {
     typeTable=rnc_user
-    version=v1
     fileName=www/${1}/index.html
 
     printBegin ${typeTable} ${fileName}
@@ -286,35 +270,17 @@ function printUserRNC() {
     echo '    <td class="halfColumn" style="width: 60%">' >> ${fileName}
     echo '      <h3><span style="font-style:italic">RNC users</span> summary table at NERSC</h3>' >> ${fileName}
 
-    printTable ${typeTable} ${version} ${fileName} 
+    printTable ${typeTable} ${fileName} 
 
     echo '    </td><td class="halfColumn" style="width: 40%">' >> ${fileName}
+
     echo '      <h3><span style="font-style:italic">RNC users</span> at NERSC</h3>' >> ${fileName}
+    echo '      <h4>user</h4>' >> ${fileName}
+    echo '      <div id="rncUser"></div>' >> ${fileName}
 
-    echo '      <h4>user (merged storage)</h4>' >> ${fileName}
-    echo '      <div id="rncUserv1"></div>' >> ${fileName}
-    echo '      <h4>user &gt; storage</h4>' >> ${fileName}
-    echo '      <div id="rncUserv2"></div>' >> ${fileName}        
-    echo '      <h4>storage &gt; user</h4>' >> ${fileName}
-    echo '      <div id="rncUserv3"></div>' >> ${fileName}        
+    printLine ${fileName}    
+
     echo '    </td></tr></table>' >> ${fileName}
-
-    printEnd ${fileName}
-
-    # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-    
-    version=v3
-    fileName=www/${1}/indexExt.html
-
-    printBegin ${typeTable} ${fileName} NONE
-
-    echo '    <table width="100%" cellspacing="0" cellpadding="10"><tr>' >> ${fileName}
-    echo '    <td class="halfColumn" style="width: 90%">' >> ${fileName}
-    echo '      <h3><span style="font-style:italic">RNC users</span> summary table at NERSC</h3>' >> ${fileName}
-    
-    printTable ${typeTable} ${version} ${fileName}
-    
-    echo '    </td><td class="halfColumn" style="width:10%">&nbsp;</td></tr></table>' >> ${fileName}
 
     printEnd ${fileName}
 }
@@ -322,7 +288,6 @@ function printUserRNC() {
 # -----------------------------------------------------------------------------------------------------------------
 function printUserALICE() {
     typeTable=alice_user
-    version=v1
     fileName=www/${1}/index.html
 
     printBegin ${typeTable} ${fileName}
@@ -331,63 +296,19 @@ function printUserALICE() {
     echo '    <td class="halfColumn" style="width: 60%">' >> ${fileName}
     echo '      <h3><span style="font-style:italic">ALICE users</span> summary table at NERSC</h3>' >> ${fileName}
 
-    printTable ${typeTable} ${version} ${fileName}
+    printTable ${typeTable} ${fileName}
 
     echo '    </td><td class="halfColumn" style="width: 40%"> ' >> ${fileName}
+
     echo '      <h3><span style="font-style:italic">ALICE users</span> at NERSC</h3> ' >> ${fileName}
-    echo '      <h4>user (merged storage)</h4>' >> ${fileName}
-    echo '      <div id="aliceUserv1"></div>' >> ${fileName}
-    echo '      <h4>user &gt; storage</h4>' >> ${fileName}
-    echo '      <div id="aliceUserv2"></div>' >> ${fileName}
-    echo '      <h4>storage &gt; user</h4>' >> ${fileName}
-    echo '      <div id="aliceUserv3"></div>' >> ${fileName}
-    echo '    </td></tr></table>' >> ${fileName}
+    echo '      <h4>user</h4>' >> ${fileName}
+    echo '      <div id="aliceUser"></div>' >> ${fileName}
 
-    printEnd ${fileName}
-
-    # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-    version=v3
-    fileName=www/${1}/indexExt.html
-
-    printBegin ${typeTable} ${fileName} NONE
-
-    echo '    <table width="100%" cellspacing="0" cellpadding="10"><tr>' >> ${fileName}
-    echo '    <td class="halfColumn" style="width: 90%">' >> ${fileName}
-    echo '      <h3><span style="font-style:italic">ALICE users</span> summary table at NERSC</h3>' >> ${fileName}
-    
-    printTable ${typeTable} ${version} ${fileName}
-    
-    echo '    </td><td class="halfColumn" style="width:10%">&nbsp;</td></tr></table>' >> ${fileName}
-    
-    printEnd ${fileName}
-}
-
-# -----------------------------------------------------------------------------------------------------------------
-function printUserEmbedding() {
-    typeTable=embedding
-    version=v1
-    fileName=www/${1}/index.html
-
-    printBegin ${typeTable} ${fileName} 
-
-    echo '    <table width="100%" cellspacing="0" cellpadding="10"><tr>' >> ${fileName}
-    echo '    <td class="halfColumn" style="width: 60%">' >> ${fileName}
-    echo '      <h3><span style="font-style:italic">STAR embedding</span> summary table at NERSC</h3>' >> ${fileName}
-
-    printTable ${typeTable} ${version} ${fileName}
-
-    echo '    </td><td class="halfColumn" style="width: 40%">' >> ${fileName}
-    echo '      <h3><span style="font-style:italic">STAR embedding productions</span> at NERSC</h3>' >> ${fileName}
-    
-    echo '      <h4>trgSetupName &gt; storage &gt; fileSet &gt; production</h4>' >> ${fileName}
-    echo '      <div id="embeddingv4"></div>' >> ${fileName}        
+    printLine ${fileName}    
 
     echo '    </td></tr></table>' >> ${fileName}
 
     printEnd ${fileName}
-    
-    # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 }
 
 # -----------------------------------------------------------------------------------------------------------------
@@ -410,47 +331,20 @@ function printEmbedding() {
     echo '      <h4>trgSetupName &gt; merged fileSet &gt; production</h4>' >> ${fileName}
     echo '      <div id="embeddingv1"></div>' >> ${fileName}
     
-    echo '      <h4>storage &gt; trgSetupName &gt; merged fileSet &gt; production</h4>' >> ${fileName}
+    echo '      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>' >> ${fileName}
+    
+    echo '      <h4>trgSetupName &gt; fileSet &gt; production</h4>' >> ${fileName}
     echo '      <div id="embeddingv2"></div>' >> ${fileName}        
     
     echo '      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>' >> ${fileName}
-    
-    echo '      <h4>trgSetupName &gt; fileSet &gt; production (merged storage)</h4>' >> ${fileName}
-    echo '      <div id="embeddingv3"></div>' >> ${fileName}        
-    
-    echo '      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>' >> ${fileName}
-    
-    echo '      <h4>trgSetupName &gt; storage &gt; fileSet &gt; production</h4>' >> ${fileName}
-    echo '      <div id="embeddingv4"></div>' >> ${fileName}        
-
-    echo '      <h4>storage &gt; trgSetupName &gt; fileSet &gt; production</h4>' >> ${fileName}
-    echo '      <div id="embeddingv5"></div>' >> ${fileName}        
-
     echo '    </td></tr></table>' >> ${fileName}
 
     printEnd ${fileName}
-    
+
     # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
 
     version=v2
     fileName=www/${1}/indexExt.html
-
-    printBegin ${typeTable} ${fileName} NONE
-
-    echo '    <table width="100%" cellspacing="0" cellpadding="10"><tr>' >> ${fileName}
-    echo '    <td class="halfColumn" style="width: 90%">' >> ${fileName}
-    echo '      <h3><span style="font-style:italic">STAR embedding</span> summary table at NERSC</h3>' >> ${fileName}
-    
-    printTable ${typeTable} ${version} ${fileName}
-    
-    echo '    </td><td class="halfColumn" style="width:10%">&nbsp;</td></tr></table>' >> ${fileName}
-    
-    printEnd ${fileName}
-
-    # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-    version=v3
-    fileName=www/${1}/indexExt2.html
 
     printBegin ${typeTable} ${fileName} NONE
 
@@ -512,7 +406,6 @@ function printPicoDSTs() {
 # -----------------------------------------------------------------------------------------------------------------
 function printPwgSTAR() {
     typeTable=pwgstar
-    version=v1
     fileName=www/${1}/index.html
 
     printBegin ${typeTable} ${fileName} 
@@ -521,41 +414,18 @@ function printPwgSTAR() {
     echo '    <td class="halfColumn" style="width: 60%">' >> ${fileName}
     echo '      <h3><span style="font-style:italic">STAR PWG directories</span> summary table at NERSC</h3>' >> ${fileName}
 
-    printTable ${typeTable} ${version} ${fileName}
+    printTable ${typeTable} ${fileName}
 
     echo '    </td><td class="halfColumn" style="width: 40%">' >> ${fileName}
-    echo '      <h3>FillStatus (Quota): <span style="font-style:italic">ELIZAs</span> ('$now')</h3>' >> ${fileName}
-    printBarElizaQuota ${fileName} eliza14 pwg "PWG (eliza14)"
-    printBarElizaQuota ${fileName} eliza17 pwg "PWG (eliza17)"
+
+    echo '      <h3><span style="font-style:italic">STAR PWG directories</span> at NERSC</h3>' >> ${fileName}
+    echo '      <h4>PWGs</h4>' >> ${fileName}
+    echo '      <div id="pwgSTAR"></div>' >> ${fileName}
 
     printLine ${fileName}    
 
-    echo '      <h3><span style="font-style:italic">STAR PWG directories</span> at NERSC</h3>' >> ${fileName}
-    echo '      <h4>PWGs (merged storage)</h4>' >> ${fileName}
-    echo '      <div id="pwgSTARv1"></div>' >> ${fileName}
-    echo '      <h4>PWGs &gt; storage</h4>' >> ${fileName}
-    echo '      <div id="pwgSTARv2"></div>' >> ${fileName}
-    echo '      <h4>storage &gt; PWGs</h4>' >> ${fileName}
-    echo '      <div id="pwgSTARv3"></div>' >> ${fileName}
     echo '    </td></tr></table>' >> ${fileName}
 
-    printEnd ${fileName}
-    
-    # -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --
-
-    version=v3
-    fileName=www/${1}/indexExt.html
-    
-    printBegin ${typeTable} ${fileName} NONE
-
-    echo '    <table width="100%" cellspacing="0" cellpadding="10"><tr>' >> ${fileName}
-    echo '    <td class="halfColumn" style="width: 90%">' >> ${fileName}
-    echo '      <h3><span style="font-style:italic">STAR PWG directories</span> summary table at NERSC</h3>' >> ${fileName}
-    
-    printTable ${typeTable} ${version} ${fileName}
-    
-    echo '    </td><td class="halfColumn" style="width:10%">&nbsp;</td></tr></table>' >> ${fileName}
-    
     printEnd ${fileName}
 }
 
@@ -575,43 +445,26 @@ cat >>${fileName} <<EOL
       <h4>trgSetupName &gt; merged fileSet &gt; production</h4>
       <div id="embeddingv1"></div>        
 
-      <h4>storage &gt; trgSetupName &gt; merged fileSet &gt; production</h4>
+      <h4>trgSetupName &gt; fileSet &gt; production</h4>
       <div id="embeddingv2"></div>        
 
       <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
-
-      <h4>trgSetupName &gt; fileSet &gt; production (merged storage)</h4>
-      <div id="embeddingv3"></div>        
-
-      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
-
-      <h4>trgSetupName &gt; storage &gt; fileSet &gt; production</h4>
-      <div id="embeddingv4"></div>        
-
-      <h4>storage &gt; trgSetupName &gt; fileSet &gt; production</h4>
-      <div id="embeddingv5"></div>        
  
     </td><td class="column">   <!-- ------------------------------------------------------------------------ -->
 
       <h3><span style="font-style:italic">RNC users</span> at NERSC</h3> 
 
-      <h4>user (merged storage)</h4>
-      <div id="rncUserv1"></div>
-      <h4>user &gt; storage</h4>        
-      <div id="rncUserv2"></div>        
-      <h4>storage &gt; user</h4>
-      <div id="rncUserv3"></div>        
+      <h4>user</h4>
+      <div id="rncUser"></div>
 
-      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
-     
+      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>     
+
       <h3><span style="font-style:italic">ALICE users</span> at NERSC</h3> 
 
-      <h4>user (merged storage)</h4>
-      <div id="aliceUserv1"></div> 
-      <h4>user &gt; storage</h4>        
-      <div id="aliceUserv2"></div> 
-      <h4>storage &gt; user</h4>
-      <div id="aliceUserv3"></div> 
+      <h4>user</h4>
+      <div id="aliceUser"></div> 
+
+      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
 
     </td><td class="column">   <!-- ------------------------------------------------------------------------ -->
   
@@ -627,12 +480,10 @@ cat >>${fileName} <<EOL
       <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
         
       <h3><span style="font-style:italic">STAR PWG directories</span> tree at NERSC</h3> 
-      <h4>PWGs (merged storage)</h4>
-      <div id="pwgSTARv1"></div> 
-      <h4>PWGs &gt; storage</h4>  
-      <div id="pwgSTARv2"></div>       
-      <h4>storage &gt; PWGs</h4>
-      <div id="pwgSTARv3"></div> 
+      <h4>PWGs</h4>
+      <div id="pwgSTAR"></div> 
+
+      <div style="width:85%;height: 25px;  border-bottom:solid gray 2px;">&nbsp;</div>
 
     </td></tr></table> 
 EOL
@@ -694,8 +545,7 @@ EOL
 # -------------------------------------------------------------------------------
 # -------------------------------------------------------------------------------
 
-#folderList="overview embedding embeddingSTAR userRNC userALICE picoDstSTAR pwgSTAR"
-folderList="data overview"
+folderList="data overview embedding picoDstSTAR pwgSTAR userRNC userALICE"
 
 pushd www > /dev/null
 for ii in ${folderList} ; do 
@@ -705,17 +555,13 @@ done
 popd > /dev/null
 
 printOverview overview
+printEmbedding embedding
 
+printUserRNC userRNC
+printUserALICE userALICE
 
-#printEmbedding embeddingSTAR
-
-#printUserEmbedding embedding
-
-#printUserRNC userRNC
-#printUserALICE userALICE
-
-#printPwgSTAR pwgSTAR
-#printPicoDSTs picoDstSTAR
+printPwgSTAR pwgSTAR
+printPicoDSTs picoDstSTAR
 
 pushd www > /dev/null
 for ii in ${folderList} ; do 

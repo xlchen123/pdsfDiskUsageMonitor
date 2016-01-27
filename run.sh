@@ -58,9 +58,6 @@ else
     reCreateTree=1
 fi
 
-#DEBUGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG
-    reCreateTree=1
-
 # -- recreate input Trees
 # -------------------------------------------------------
 if [ $reCreateTree -eq 1 ] ; then
@@ -81,6 +78,12 @@ if [ $reCreateTree -eq 1 ] ; then
 	mkdir -p project
     fi
 
+    if [ -d output ] ; then 
+	rm -rf output
+    else
+	mkdir -p output
+    fi
+
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-starprod.list project/
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-star.list project/
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-alice.list project/
@@ -94,14 +97,6 @@ if [ $reCreateTree -eq 1 ] ; then
     ${BASEPATH}/parseGPFSDump.tcsh ${BASEPATH} 0
 
     ${BASEPATH}/parseGPFSDump.tcsh ${BASEPATH} 1
-
-    if [ -d output ] ; then 
-	rm -f output/*.list
-    else
-	mkdir -p output
-    fi
-
-    mv outfile_* output/
 fi
 
 # -- create html

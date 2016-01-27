@@ -22,7 +22,7 @@ static const Int_t     gcUid[4]            = {000, 001, 002, 003};
 static const Int_t     gcGid[4]            = {000, 001, 002, 003};
 
 // -- input files
-static const Char_t*   gcFolder[3]         = {"alice", "rnc", "star"};
+static const Char_t*   gcFolder[2]         = {"alice", "rnc"};
 static const Char_t*   gcStorage[2]        = {"project", "projecta"}; 
 static const Char_t*   gcStoragePrefix[2]  = {"prj2", "prjA"}; 
 
@@ -533,11 +533,13 @@ private:
 };
 
 // --------------------------------------------------------------------------------------
-node* GetNodeProjectDirs(node* root, Int_t idxFolder);
-node* GetNodeProjectDirsA(node* root, Int_t idxFolder);
+node* GetNodeProjectDirs(node* root, Int_t idxFolder, Int_t idxStorage);
+node* GetNodeProject(node* root, Int_t idxFolder, Int_t idxStorage);
 
-node* GetNodeProject(node* root, Int_t idxFolder);
-node* GetNodeProjectA(node* root, Int_t idxFolder);
+node* GetNodeEmbedding(node* root);
+node* GetNodePicoDsts(node* root, Int_t idxStorage);
+node* GetNodePwgSTAR(node* root);
+node* GetNodeUserRNC(node* root);
 
 void  processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode);
 void  processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode);
@@ -546,13 +548,12 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder);
 
 void  printFolder(node* folder);
 void  printTable(node* rootIn, Int_t idxVersion = 1);
-void  printTableEmbeddingExt(node* embeddingExtRoot);
 
 node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage);
-// node* processUser(node* rootIn, node* rootOut, Int_t version, Int_t idxFolder);
+node* processUser(node* rootIn, node* rootOut, Int_t idxGroup);
 node* processEmbedding(node* rootIn, node* rootOut, Int_t version);
-// node* processPicoDsts(node* rootIn, node* rootOut, Int_t version = 1);
-// node* processPwgSTAR(node* rootIn, node* rootOut, Int_t version = 1);
+node* processPicoDsts(node* rootIn, node* rootOut, Int_t version = 1);
+node* processPwgSTAR(node* rootIn, node* rootOut);
 
 void  parseGPFSDump(Int_t mode = 0);
 // --------------------------------------------------------------------------------------
@@ -562,43 +563,76 @@ void  parseGPFSDump(Int_t mode = 0);
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 
 // ________________________________________________________________________________
-node* GetNodeProjectDirs(node* root, Int_t idxFolder) {
+node* GetNodeProjectDirs(node* root, Int_t idxFolder, Int_t idxStorage) {
   // -- Get the toplevel project nodes
 
-  node* topLevel = root->GetChild(Form("raw_project_%s", gcProjectFolder[idxFolder]));
-  return (topLevel) ? topLevel->GetChild("projectdirs") : root->GetChild("projectdirs");
-} 
+  node* topLevel = root->GetChild(Form("raw_%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
 
-// ________________________________________________________________________________
-node* GetNodeProjectDirsA(node* root, Int_t idxFolder) {
-  // -- Get the toplevel projectA nodes
-  
-  node* topLevel = root->GetChild(Form("raw_projecta_%s", gcProjectFolder[idxFolder]));
-  if (topLevel)
-    return topLevel->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
-  else {
-    if (root->GetChild(""))
-      return root->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
-    else 
-      return NULL;
+  if (idxStorage == 0)
+    return (topLevel) ? topLevel->GetChild("projectdirs") : root->GetChild("projectdirs");
+
+  else if (idxStorage == 1) {
+    if (topLevel)
+      return topLevel->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
+    else {
+      if (root->GetChild(""))
+	return root->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
+      else 
+	return NULL;
+    }
   }
+
+  return NULL;
 } 
 
 // ________________________________________________________________________________
-node* GetNodeProject(node* root, Int_t idxFolder) {
+node* GetNodeProject(node* root, Int_t idxFolder, Int_t idxStorage) {
   // -- Get the toplevel project nodes
 
-  node *projectDirs = GetNodeProjectDirs(root, idxFolder);
+  node *projectDirs = GetNodeProjectDirs(root, idxFolder, idxStorage);
   return (projectDirs) ? projectDirs->GetChild(gcProjectFolder[idxFolder]) : NULL;
 } 
 
 // ________________________________________________________________________________
-node* GetNodeProjectA(node* root, Int_t idxFolder) {
-  // -- Get the toplevel projectA nodes
+node* GetNodeEmbedding(node* root) {
+  // -- Get embedding node in projecta/embedding
+
+  node* starprod = GetNodeProject(root, 2, 1);
+  return (starprod) ? starprod->GetChild("embedding") : NULL;
+}
+
+// ________________________________________________________________________________
+node* GetNodePicoDsts(node* root, Int_t idxStorage) {
+  // -- get picoDsts node on storage
   
-  node *projectDirs = GetNodeProjectDirsA(root, idxFolder);
-  return (projectDirs) ? projectDirs->GetChild(gcProjectFolder[idxFolder]) : NULL;
-} 
+  // -- project 
+  if (idxStorage == 0) {
+    node* star = GetNodeProject(root, 1, 0);
+    return (star) ? star->GetChild("starprod")->GetChild("picodsts") : NULL;
+  }
+  else if (idxStorage == 1) {
+    node* starprod = GetNodeProject(root, 2, 0);
+    return (starprod) ? starprod->GetChild("picodsts") : NULL;
+  }
+
+  return NULL;
+}
+
+// ________________________________________________________________________________
+node* GetNodePwgSTAR(node* root) {
+  // -- Get PWGs
+
+  node* star = GetNodeProject(root, 1, 0);
+  return (star) ? star->GetChild("pwg") : NULL;
+}
+
+// ________________________________________________________________________________
+node* GetNodeUserRNC(node* root) {
+  // -- Get PWGs
+
+  node* starprod = GetNodeProject(root, 2, 0);
+  return (starprod) ? starprod->GetChild("rnc") : NULL;
+}
 
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 // -- read in input tree from project and projecta
@@ -815,12 +849,7 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
   // -- set new folder structure
   node* final = root->AddNode(Form("%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
 
-  node* project;
-  if (idxStorage == 0)
-    project = GetNodeProject(folder, idxFolder);
-  else if (idxStorage == 1)
-    project = GetNodeProjectA(folder, idxFolder);
-  
+  node* project  = GetNodeProject(folder, idxFolder, idxStorage);
   final->AddChildren(project);
   
   // -- print folder
@@ -861,7 +890,7 @@ void printTable(node* rootIn, Int_t idxVersion) {
   // -- Sum up children for toplevel
   //  folder->SumAddChildren();
 
-  TString outName("outfile_Table");
+  TString outName("output/outfile_Table");
 
   if (idxVersion == 0)
     outName += "_Ext";
@@ -873,11 +902,13 @@ void printTable(node* rootIn, Int_t idxVersion) {
     return; 
   }
 
+  printf("OutFile %s_%s.txt\n", outName.Data(), rootIn->GetName());
+
   // -- Fill table Entries
   if (idxVersion == 1) 
     rootIn->PrintTableEntries(fout, idxVersion);  
 
-  else if (idxVersion == 2) {
+  else if (idxVersion == 2) { // ..... maybe obsolete - true for embedding
     // -- loop over storage folder
     for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
       node* storage = rootIn->GetChild(gcStorage[idxStorage]);
@@ -918,61 +949,9 @@ void printTable(node* rootIn, Int_t idxVersion) {
   else if (idxVersion == 0) 
     rootIn->PrintTableSummary(foutSum, 2);  
 
-  /*
-  else if (idxVersion == 3) {
-    // -- loop over storage folder
-    for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
-      node* storage = rootIn->GetChild(gcStorage[idxStorage]);
-      if (storage)
-	storage->PrintTableSummary(fout, 1);  
-    }
-  }
-  */
   foutSum.close();
 }
 
-// ________________________________________________________________________________
-void printTableEmbeddingExt(node* embeddingExtRoot) {
-  // -- print the output of a folder in to a html table
-  //    -- adding extra fields for embedding
-
-  // -- Sum up children for toplevel
-  //  embeddingExtRoot->SumAddChildren();
-
-  // -- open output file
-  ofstream fout(Form("outfile_TableExt_%s.txt", embeddingExtRoot->GetName()));
-  if (!fout.good()) {
-    printf ("File OutFile outfile_TableExt_%s.txt couldn't be opened!", embeddingExtRoot->GetName());
-    return; 
-  }
-
-  // -- loop over children of embeddingExtRoot = production
-  TIter nextProduction(embeddingExtRoot->GetChildren());
-  node* production;
-  while ((production = static_cast<node*>(nextProduction()))) {
-
-    // -- loop over children of production = particle
-    TIter nextParticle(production->GetChildren());
-    node* particle;
-    while ((particle = static_cast<node*>(nextParticle()))) {
-      particle->PrintTableEntries(fout, 4, production->GetTitle());
-    } //  while ((production = static_cast<node*>(nextParticle()))) {
-  } //  while ((production = static_cast<node*>(nextProduction()))) {
-  
-  fout.close();
-
-
-  // -- open output file
-  ofstream foutSum(Form("outfile_TableExt_%s_Sum.txt", embeddingExtRoot->GetName()));
-  if (!foutSum.good()) {
-    printf ("File OutFile outfile_TableExt_%s_Sum.txt couldn't be opened!", embeddingExtRoot->GetName());
-    return; 
-  }
-
-  embeddingExtRoot->PrintTableSummary(foutSum, 2);  
-
-  foutSum.close();
-}
 
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 // -- Process use cases
@@ -987,7 +966,7 @@ node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage) {
 
   // -- loop over all folder
   for (Int_t idxFolder = 0; idxFolder < 3; ++idxFolder) {
-    node* projectdirs = (idxStorage == 0) ? GetNodeProjectDirs(rootIn, idxFolder) : GetNodeProjectDirsA(rootIn, idxFolder);
+    node* projectdirs = GetNodeProjectDirs(rootIn, idxFolder, idxStorage);
     if (!projectdirs) 
       continue;
     storage->AddChildren(projectdirs);
@@ -1000,56 +979,18 @@ node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage) {
 }
 
 // ________________________________________________________________________________
-node* processUser(node* rootIn, node* rootOut, Int_t version, Int_t idxFolder) {
+node* processUser(node* rootIn, node* rootOut, Int_t idxGroup) {
   // -- process User for RNC and ALICE
   
   // -- add storage rootNode
-  node* userRoot = rootOut->AddNode(Form("%s_userv%d", gcFolder[idxFolder], version));
-  userRoot->SetTitle(Form("%s user V%d", gcFolder[idxFolder], version));
+  node* userRoot = rootOut->AddNode(Form("%s_user", gcFolder[idxGroup]));
+  userRoot->SetTitle(Form("%s user", gcFolder[idxGroup]));
 
-  // -- loop over storage folder
-  for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
-    node* storage = rootIn->GetChild(gcStorage[idxStorage]);
-    if (!storage)
-      continue;
-
-    // -- get parent folder for users in two different ways = group
-    //    for star/rnc on project)
-    if (idxFolder == 1 && idxStorage == 4)
-      ++idxFolder;
-
-    node* group = storage->GetChild(gcFolder[idxFolder]);
-    if (!group)
-      continue;
-
-    // -- Fill ---------------------
-
-    // -- sum up over all storage
-    if (version == 1) 
-      userRoot->AddChildren(group);
-
-    // -- user > storage
-    else if (version == 2) {
-      // -- loop over children group = user
-      TIter next(group->GetChildren());
-      node *user;
-      while ((user = static_cast<node*>(next()))) {
-  	node* userUser = userRoot->AddNodeCopy(user);
-	node* userStorage = userUser->AddNode(gcStorage[idxStorage]);
-	userStorage->AddChildren(user);
-
-	userUser->SumAddChildren();
-      }
-    }
-
-    // -- storage > user
-    else if (version == 3) {
-      node* userStorage = userRoot->AddNode(gcStorage[idxStorage]);
-      userStorage->AddChildren(group);
-    }
-  }
-
-  // -- Sum up children for toplevel
+  node* group = (idxGroup == 0) ? GetNodeProject(rootIn, 0, 0) : GetNodeUserRNC(rootIn);
+  if (!group)
+    return NULL;
+  
+  userRoot->AddChildren(group);
   userRoot->SumAddChildren();
  
   return userRoot;
@@ -1058,196 +999,101 @@ node* processUser(node* rootIn, node* rootOut, Int_t version, Int_t idxFolder) {
 // ________________________________________________________________________________
 node* processEmbedding(node* rootIn, node* rootOut, Int_t version) {
   // -- process Embedding files for STAR
+  //     V1 : trgSetupName > merged particles > production
+  //     V2 : trgSetupName > particles > production
   
   // -- get storage rootNode
   node* embeddingRoot = rootOut->AddNode(Form("embeddingV%d", version));
   embeddingRoot->SetTitle(Form("STAR embedding V%d", version));
-    
-  // -- loop over storage folder
-  for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
-    node* storage = rootIn->GetChild(gcStorage[idxStorage]);
-    if (!storage)
-      continue;
 
-    // -- get starprod folder in two different ways (eliza, project)
-    node* starprod = NULL;
-
-    // -- elizas
-    if (idxStorage < 4) {
-      // -- get star folder - as child of storage folder
-      node* star = storage->GetChild("star");
-      if (!star)
-	continue;
-
-      starprod = star->GetChild("starprod");
-    }
-    // -- project
-    else
-      starprod = storage->GetChild("starprod");
-   
-    if (!starprod)
-      continue;
-   
-    // -- get embedding folder
-    node* embedding = starprod->GetChild("embedding");
-    if (!embedding)
-      continue;
-
-    // -- Fill ---------------------
+  // -- get embedding folder
+  node* embedding = GetNodeEmbedding(rootIn);
+  if (!embedding)
+    return NULL;
+  
+  // -- Fill ---------------------
+  if (version == 2) {
+    embeddingRoot->AddChildren(embedding);
+  }
+  else if (version == 1) {
+    // -- loop over children embedding = trgSetupName
+    TIter next(embedding->GetChildren());
+    node *trgSetupName;
+    while ((trgSetupName = static_cast<node*>(next()))) {
       
-    if (version == 5) {
-      node* embeddingStorage = embeddingRoot->AddNodeCopy(embedding, gcStorage[idxStorage]);
-      embeddingStorage->AddChildren(embedding);
-    }
-    else if (version == 4) {
-      // -- loop over children embedding = trgSetupName
-      TIter next(embedding->GetChildren());
-      node *trgSetupName;
-      while ((trgSetupName = static_cast<node*>(next()))) {
-	
-	// -- add trgSetupName -> storage  
-	node* embeddingTrgSetupName = embeddingRoot->AddNode(trgSetupName->GetTitle());
-	node* embeddingStorage = embeddingTrgSetupName->AddNode(gcStorage[idxStorage]);
-	embeddingStorage->AddChildren(trgSetupName);
-	
-	embeddingTrgSetupName->SumAddChildren();
-      }
-    }
-    if (version == 3) {
-      embeddingRoot->AddChildren(embedding);
-    }
-    else if (version == 2) {
-      node* embeddingStorage = embeddingRoot->AddNodeCopy(embedding, gcStorage[idxStorage]);
+      // -- add a copy to the tree
+      node* embeddingTrgSetupName = embeddingRoot->AddNodeCopy(trgSetupName);
       
-      // -- loop over children embedding = trgSetupName
-      TIter next(embedding->GetChildren());
-      node *trgSetupName;
-      while ((trgSetupName = static_cast<node*>(next()))) {
+      // -- loop over children of production = particle
+      TIter nextParticle(trgSetupName->GetChildren());
+      node *particle;
+      while ((particle = static_cast<node*>(nextParticle()))) {
 	
-	// -- add a copy to the tree
-	node* embeddingTrgSetupName = embeddingStorage->AddNodeCopy(trgSetupName);
-
-	// -- loop over children of production = particle
-	TIter nextParticle(trgSetupName->GetChildren());
-	node *particle;
-	while ((particle = static_cast<node*>(nextParticle()))) {
-
-	  // -- find position of '_' and get part before = particle name
-	  TString sParticle(particle->GetTitle()); 
-	  if (sParticle.First('_') > 0 )
-	    sParticle.Remove(sParticle.First('_'), sParticle.Length());
+	// -- find position of '_' and get part before = particle name
+	TString sParticle(particle->GetTitle()); 
+	if (sParticle.First('_') > 0 )
+	  sParticle.Remove(sParticle.First('_'), sParticle.Length());
+	
+	node* embeddingParticle = embeddingTrgSetupName->AddNodeCopy(particle, sParticle);
+	embeddingParticle->AddChildren(particle);
+	embeddingTrgSetupName->SumAddChildren();
+	
+      } // while ((particle = static_cast<node*>(nextParticle()))) {
+      embeddingTrgSetupName->SumAddChildren();
       
-	  node* embeddingParticle = embeddingTrgSetupName->AddNodeCopy(particle, sParticle);
-	  embeddingParticle->AddChildren(particle);
-
-	  embeddingTrgSetupName->SumAddChildren();
-	} // while ((particle = static_cast<node*>(nextParticle()))) {
-	embeddingTrgSetupName->SumAddChildren();
-
-      } // while ((trgSetupName = static_cast<node*>(next()))) {
-      embeddingStorage->SumAddChildren();
-    }
-    else if (version == 1) {
-      // -- loop over children embedding = trgSetupName
-      TIter next(embedding->GetChildren());
-      node *trgSetupName;
-      while ((trgSetupName = static_cast<node*>(next()))) {
-	
-	// -- add a copy to the tree
-	node* embeddingTrgSetupName = embeddingRoot->AddNodeCopy(trgSetupName);
-	
-	// -- loop over children of production = particle
-	TIter nextParticle(trgSetupName->GetChildren());
-	node *particle;
-	while ((particle = static_cast<node*>(nextParticle()))) {
-	  
-	  // -- find position of '_' and get part before = particle name
-	  TString sParticle(particle->GetTitle()); 
-	  if (sParticle.First('_') > 0 )
-	    sParticle.Remove(sParticle.First('_'), sParticle.Length());
-	  
-	  node* embeddingParticle = embeddingTrgSetupName->AddNodeCopy(particle, sParticle);
-	  embeddingParticle->AddChildren(particle);
-	  embeddingTrgSetupName->SumAddChildren();
-
-	} // while ((particle = static_cast<node*>(nextParticle()))) {
-	embeddingTrgSetupName->SumAddChildren();
-
-      } // while ((trgSetupName = static_cast<node*>(next()))) {
-    }
-  } // for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) { 
-
+    } // while ((trgSetupName = static_cast<node*>(next()))) {
+  }
+  
   embeddingRoot->SumAddChildren();
 
   return embeddingRoot;
 }
 
+
 // ________________________________________________________________________________
-node* processPicoDsts(node* rootIn, node* rootOut, Int_t version = 1) {
+node* processPicoDsts(node* rootIn, node* rootOut, Int_t version) {
   // -- process PicoDsts files for STAR
 
   // -- add picoDsts rootNode
   node* picoDstsRoot = rootOut->AddNode(Form("picodstsv%d", version));
   picoDstsRoot->SetTitle(Form("STAR picoDsts V%d", version));
-
-  // -- loop over storage folder
-  for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
-    node* storage = rootIn->GetChild(gcStorage[idxStorage]);
-    if (!storage)
-      continue;
-  
-    // -- get starprod folder in two different ways (eliza, project)
-    node* starprod = NULL;
-    
-    // -- elizas
-    if (idxStorage < 4) {
-      // -- get star folder - as child of storage folder
-      node* star = storage->GetChild("star");
-      if (!star)
-	continue;
       
-      starprod = star->GetChild("starprod");
-    }
-    // -- project
-    else
-      starprod = storage->GetChild("starprod");
-   
-    if (!starprod)
-      continue;
-   
+  // -- loop over storage folder
+  for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage) {
+    
     // -- get picoDsts folder
-    node* picoDsts = starprod->GetChild("picodsts");
+    node* picoDsts = GetNodePicoDsts(rootIn, idxStorage);
     if (!picoDsts)
       continue;
 
     // -- Fill ---------------------
 
-    // -- sum up over all storage
+    // -- picoDsts, merged storage
     if (version == 1) {
       picoDstsRoot->CopyPropertiesOwn(picoDsts);
       picoDstsRoot->AddChildren(picoDsts);
     }
 
-    // -- user > picoDsts
+    // -- picoDsts > storage
     else if (version == 2) {
 
-      // -- loop over children picoDts = production
+      // -- loop over children picoDsts = production
       TIter next(picoDsts->GetChildren());
       node *production;
       while ((production = static_cast<node*>(next()))) {
   	node* picoDstsProduction = picoDstsRoot->AddNodeCopy(production);
-	node* picoDstsStorage = picoDstsProduction->AddNode(gcStorage[idxStorage]);
+	node* picoDstsStorage = picoDstsProduction->AddNode(gcProjectFolder[idxStorage+1]);
 	picoDstsStorage->AddChildren(production);
 
 	picoDstsProduction->SumAddChildren();
       }
     }
-    // -- storage > user
+    
+    // -- storage > picoDsts
     else if (version == 3) {
-      node* picoDstsStorage = picoDstsRoot->AddNode(gcStorage[idxStorage]);
+      node* picoDstsStorage = picoDstsRoot->AddNode(gcProjectFolder[idxStorage+1]);
       picoDstsStorage->AddChildren(picoDsts);
     }
-
   } // for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
 
   picoDstsRoot->SumAddChildren();
@@ -1256,58 +1102,20 @@ node* processPicoDsts(node* rootIn, node* rootOut, Int_t version = 1) {
 }
 
 // ________________________________________________________________________________
-node* processPwgSTAR(node* rootIn, node* rootOut, Int_t version = 1) {
+node* processPwgSTAR(node* rootIn, node* rootOut) {
   // -- process PWG files for STAR
   
   // -- add pwgSTAR rootNode
-  node* pwgSTARRoot = rootOut->AddNode(Form("pwgstarv%d", version));
-  pwgSTARRoot->SetTitle(Form("STAR PWGs V%d", version));
+  node* pwgSTARRoot = rootOut->AddNode(Form("pwgstar"));
+  pwgSTARRoot->SetTitle(Form("STAR PWGs"));
 
-  // -- loop over storage folder
-  for (Int_t idxStorage = 0; idxStorage < 5; ++idxStorage) {
-    node* storage = rootIn->GetChild(gcStorage[idxStorage]);
-    if (!storage)
-      continue;
-
-    // -- get star folder
-    node* star = storage->GetChild("star");    
-    if (!star)
-      continue;
-    
-    // -- get pwg folder
-    node* pwg = star->GetChild("pwg");
-    if (!pwg)
-      continue;
-    
-    // -- Fill ---------------------
-
-    // -- sum up over all storage
-    if (version == 1) {
-      pwgSTARRoot->CopyPropertiesOwn(pwg);
-      pwgSTARRoot->AddChildren(pwg);
-    }
-
-    // -- user > pwgs
-    else if (version == 2) {
-
-      // -- loop over children picoDts = production
-      TIter next(pwg->GetChildren());
-      node *pwgName;
-      while ((pwgName = static_cast<node*>(next()))) {
-  	node* pwgSTARProduction = pwgSTARRoot->AddNodeCopy(pwgName);
-	node* pwgSTARStorage = pwgSTARProduction->AddNode(gcStorage[idxStorage]);
-	pwgSTARStorage->AddChildren(pwgName);
-
-	pwgSTARProduction->SumAddChildren();
-      }
-    }
-    // -- storage > user
-    else if (version == 3) {
-      node* pwgSTARStorage = pwgSTARRoot->AddNode(gcStorage[idxStorage]);
-      pwgSTARStorage->AddChildren(pwg);
-    }
-  }
- 
+  // -- get pwg folder
+  node* pwg = GetNodePwgSTAR(rootIn);
+  if (!pwg)
+    return NULL;
+  
+  pwgSTARRoot->CopyPropertiesOwn(pwg);
+  pwgSTARRoot->AddChildren(pwg);
   pwgSTARRoot->SumAddChildren();
 
   return pwgSTARRoot;
@@ -1368,63 +1176,38 @@ void parseGPFSDump(Int_t mode) {
     // -------------------------------------------------------------------------
     // -- loop over storage disks
     // -------------------------------------------------------------------------
-#if 0
     node* storage = root->AddNode("storage");
 
     for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage)
       processStorage(root, storage, idxStorage);
-#endif
 
     // -------------------------------------------------------------------------
     // -- create user only
     // -------------------------------------------------------------------------
-#if 0
     node* user = root->AddNode("user");
 
-    // -- process user
-    //    V1 : user, merged storage
-    //    V2 : user > storage
-    //    V3 : storage > user
     for (Int_t idxGroup = 0; idxGroup < 2; ++idxGroup) {
-      for (Int_t idxVersion = 1; idxVersion < 4; ++idxVersion) {
-	node* folder = processUser(storage, user, idxVersion, idxGroup);  
-	printFolder(folder);
-	
-	if (idxVersion == 1)
-	  printTable(folder, 1);
-	else if (idxVersion == 3)
-	  printTable(folder, 2);
-      }
+      node* folder = processUser(root, user, idxGroup);  
+      printFolder(folder);
+      printTable(folder, 1);
     }
-#endif 
 
     // -------------------------------------------------------------------------
     // -- create embedding only
     // -------------------------------------------------------------------------
     node* embedding = root->AddNode("embedding");
-    // -- process embedding V1 : trgSetupName > merged particles > production
-    //                      V2 : storage > trgSetupName > merged particles > production
-    //                      V3 : trgSetupName > particles > production
-    //                      V4 : trgSetupName > storage > particles > production
-    //                      V5 : storage > trgSetupName > particles > production
-    for (Int_t idxVersion = 1; idxVersion < 6; ++idxVersion) {
-      node* folder = processEmbedding(storage, embedding, idxVersion);
-      if (idxVersion == 5 || idxVersion == 2 || idxVersion == 4)
-	folder->SetMaxLevel(gcMaxLevel+1);
-      printFolder(folder);
+    //    V1 : trgSetupName > merged particles > production
+    //    V2 : trgSetupName > particles > production
 
+    for (Int_t idxVersion = 1; idxVersion < 3; ++idxVersion) {
+      node* folder = processEmbedding(root, embedding, idxVersion);
+      printFolder(folder);
+      
       if (idxVersion == 1) {
-	printTable(folder, 1);
+     	printTable(folder, 1);
 	printTable(folder, 0);   // << - extended
       }
-      else if (idxVersion == 2)
-	printTable(folder, 2);
-
-      if (idxVersion == 5 || idxVersion == 2 || idxVersion == 4)
-	folder->SetMaxLevel(gcMaxLevel);
     }
-
-    return;
 
     // -------------------------------------------------------------------------
     // -- create picoDsts only
@@ -1435,13 +1218,15 @@ void parseGPFSDump(Int_t mode) {
     //    V2 : picoDsts > storage
     //    V3 : storage > picoDsts
     for (Int_t idxVersion = 1; idxVersion < 4; ++idxVersion) {
-      node* folder = processPicoDsts(storage, picoDsts, idxVersion);
+      node* folder = processPicoDsts(root, picoDsts, idxVersion);
       folder->SetMaxLevel(gcMaxLevel+1);
+
       printFolder(folder);
       if (idxVersion == 1)
 	printTable(folder, 1);
       else if (idxVersion == 3)
 	printTable(folder, 2);
+
       folder->SetMaxLevel(gcMaxLevel);
     }
 
@@ -1450,22 +1235,17 @@ void parseGPFSDump(Int_t mode) {
     // -------------------------------------------------------------------------
     node* pwgSTAR = root->AddNode("pwgstar");
 
-    //    V1 : pwgSTAR, merged storage
-    //    V2 : pwgSTAR > storage
-    //    V3 : storage > pwgSTAR
-    for (Int_t idxVersion = 1; idxVersion < 4; ++idxVersion) {
-      node* folder = processPwgSTAR(storage, pwgSTAR, idxVersion);
-      folder->SetMaxLevel(gcMaxLevel+3);
-      printFolder(folder);
-      if (idxVersion == 1) 
-	printTable(folder, 1);
-      else if (idxVersion == 3)
-	printTable(folder, 2);
-      folder->SetMaxLevel(gcMaxLevel);
-    }   
+    node* folder = processPwgSTAR(root, pwgSTAR);
+    folder->SetMaxLevel(gcMaxLevel+3);
+
+    printFolder(folder);
+    printTable(folder, 1);
+
+    folder->SetMaxLevel(gcMaxLevel);
+
     // -------------------------------------------------------------------------
   }
-
+  
   return;
 }
 
