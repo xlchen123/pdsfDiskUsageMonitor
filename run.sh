@@ -80,9 +80,9 @@ if [ $reCreateTree -eq 1 ] ; then
 
     if [ -d output ] ; then 
 	rm -rf output
-    else
-	mkdir -p output
     fi
+
+    mkdir -p output
 
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-starprod.list project/
     ln -s /project/statistics/DIBS/tlproject2/${projectFolder}/prj2-star.list project/
