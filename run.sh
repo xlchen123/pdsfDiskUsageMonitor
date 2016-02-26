@@ -14,75 +14,68 @@ pushd ${BASEPATH} > /dev/null
 inputPath=/project/statistics/LIST
 
 
-# -- get latest PROJECTA file
-projectAFile=`readlink /global/projecta/statistics/tlprojecta/projecta.listall`
 
 
 
+# -- get latest PROJECT/PROJECTA folder
 
-# -- get latest PROJECT folder
-projectFolders=`ls -t ${inputPath}/tlproject2/ | head -n 10 | sort -r 2> /dev/null`
-for folder in $projectFolders ; do
+for prjFolder in PROJECT PROJECTA  ; do
 
-    # -- Get file in latest folder
-    inFile=`ls ${inputPath}/tlproject2/${folder}/*list.allfiles`
-    if [ ! -f ${inFile} ] ; then 
-	continue
+    if [ "${prjFolder}" == "project" ] ; then 
+	prjPath=tlproject2
+    elif [ "${prjFolder}" == "projecta" ] ; then 
+	prjPath=tlprojecta
     fi
+    
+    projectFolders=`ls -t ${inputPath}/${prjPath}/ | head -n 10 | sort -r 2> /dev/null`
+    for folder in $projectFolders ; do
 	
-    # -- Get old modification dates and check if tree recreation has to be run
-    modDatePROJECT=${folder}
-
-    if [ -f modDatePROJECT.txt ] ; then 
-	oldmodDatePROJECT=`cat modDatePROJECT.txt`
-	if [ "$oldmodDatePROJECT" == "$modDatePROJECT" ] ; then 
-	    break
+	# -- Get file in latest folder
+	inFile=`ls ${inputPath}/${prjPath}/${folder}/*list.allfiles`
+	if [ ! -f ${inFile} ] ; then 
+	    continue
 	fi
-    fi
-
-    reCreateTree=1
-
-    # -- Create input files for parsing
-    
-    # -- Get project folder
-    if [ -d project ] ; then 
-	rm -f project/*.list
-    else
-	mkdir -p project
-    fi 
-    
-    # -- Get input files for parsing
-    cat ${inFile} | grep "%2Fprojectdirs%2Fstar%2F" > project/prj2-star.list
-    sed -i "s/%2Fproject%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" project/prj2-star.list
-    
-    cat ${inFile} | grep "%2Fprojectdirs%2Fstarprod%2F" > project/prj2-starprod.list
-    sed -i "s/%2Fproject%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" project/prj2-starprod.list
-    
-    cat ${inFile} | grep "%2Fprojectdirs%2Falice%2F" > project/prj2-alice.list
-    sed -i "s/%2Fproject%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" project/prj2-alice.list
-
-    echo $modDatePROJECT > modDatePROJECT.txt
-
-    projectFolder=$folder
-    break
-done
-
-# -- Get modification dates 
-modDatePROJECTA=`stat -c %y /global/projecta/statistics/tlprojecta/${projectAFile} | cut -d' ' -f 1` 
-
-if [ -f modDatePROJECTA.txt ] ; then 
-    oldmodDatePROJECTA=`cat modDatePROJECTA.txt`
-    if [ "$oldmodDatePROJECTA" != "$modDatePROJECTA" ] ; then 
+	
+	# -- Get old modification dates and check if tree recreation has to be run
+	modDatePROJECT=${folder}
+	
+	if [ -f modDatePROJECT.txt ] ; then 
+	    oldmodDatePROJECT=`cat modDate${prjFolder}.txt`
+	    if [ "$oldmodDatePROJECT" == "$modDatePROJECT" ] ; then 
+		break
+	    fi
+	fi
+	
 	reCreateTree=1
-    fi
-else
-    reCreateTree=1
-fi
+	
+	# -- Create input files for parsing
+	# ----------------------------------------------
+	
+	# -- Get project folder
+	if [ -d ${prjFolder} ] ; then 
+	    rm -f ${prjFolder}/*.list
+	else
+	    mkdir -p ${prjFolder}
+	fi 
+	
+	# -- Get input files for parsing
+	cat ${inFile} | grep "%2Fprojectdirs%2Fstarprod%2F" > ${prjFolder}/prj-starprod.list
+	sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-starprod.list
 
+	if [ "${prjFolder}" == "project" ] ; then 
+	    cat ${inFile} | grep "%2Fprojectdirs%2Fstar%2F" > ${prjFolder}/prj-star.list
+	    sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-star.list
+	    
+	    cat ${inFile} | grep "%2Fprojectdirs%2Falice%2F" > ${prjFolder}/prj-alice.list
+	    sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-alice.list
+	fi
 
-echo $reCreateTree done ...
-
-exit
+	echo $modDatePROJECT > modDate${prjFolder}.txt
+	
+	projectFolder=$folder
+	break
+    done
+done
 
 reCreateTree=1   #debug
 
@@ -90,24 +83,13 @@ reCreateTree=1   #debug
 # -------------------------------------------------------
 if [ $reCreateTree -eq 1 ] ; then
 
-    # -- get projectA file
-    if [ -d projecta ] ; then 
-	rm -f projecta/*.list
-    else
-	mkdir -p projecta
-    fi
-
-    grep "/global/projecta/projectdirs/starprod/" /global/projecta/statistics/tlprojecta/${projectAFile} > projecta/prjA-starprod.list
-
     if [ -d output ] ; then 
 	rm -rf output
     fi
 
     mkdir -p output
 
-    echo $modDatePROJECTA > modDatePROJECTA.txt
-
-   # rm -f treeOutput.root
+    # rm -f treeOutput.root
 
     # -- run script
     ${BASEPATH}/parseGPFSDump.tcsh ${BASEPATH} 0

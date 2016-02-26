@@ -24,7 +24,7 @@ static const Int_t     gcGid[4]            = {000, 001, 002, 003};
 // -- input files
 static const Char_t*   gcFolder[2]         = {"alice", "rnc"};
 static const Char_t*   gcStorage[2]        = {"project", "projecta"}; 
-static const Char_t*   gcStoragePrefix[2]  = {"prj2", "prjA"}; 
+static const Char_t*   gcStoragePrefix[2]  = {"prj", "prj"}; 
 
 static const Char_t*   gcProjectFolder[3]  = {"alice", "star", "starprod"};
 
