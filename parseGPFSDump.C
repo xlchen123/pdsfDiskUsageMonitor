@@ -283,7 +283,7 @@ public:
     // -- add file into tree
 
     // -- find position of '/'
-    Short_t first = title.First('/');
+    Short_t first = title.First("|||");
 
     // -- if leaf  ( no '/' inside)
     //      add own size + child && return
@@ -300,7 +300,7 @@ public:
     TString current(title(0, first));
     
     // -- remaining path - without current
-    title.Remove(0,first+1);
+    title.Remove(0,first+3);
     
     // -- get child node, if no exist -> create it
     node* child = AddNode(current);
@@ -642,49 +642,35 @@ node* GetNodeUserRNC(node* root) {
 void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) {
   // -- loop over file and add to fileRootNode node
 
-  // -- fields of input file
-  //    >> inode#|size in bytes|# entries/refs|uid|gid|mode|atime|mtime|blocks|ctime|pathname
-  //       0     |1            |2             |3  |4  |5   |6    |7    |8     |9    |10    
 
-  ULong64_t size;
-  Int_t     entries, uid, gid, atime, ctime, mtime;
-  TString   name;
-
-  TString firstLine;
+  /*  here is the list of column names in the list
+      0    INODE		20656 - Specifies the file's inode number
+      1    GENERATION Number    65544 - Specifies a number that is incremented whenever an INODE number is reused.
+      2    SMNAPSHOT ID	        541   - Specifies the snapshot ID
+      3    FILE_SIZE 	        512   - Specifies the current size or length of the file, in bytes.
+      4    FILESET_NAME 	star  - Specifies the fileset where the path name for the files is located.
+      5    GENERATION Number    65544 - Specifies a number that is incremented whenever an INODE number is reused.
+      6    MISC_ATTRIBUTES      D2u   - ( see details below )
+      7    NLink 		2     - Specifies the number of hard links to the file.
+      8    USER_ID		59805 - Specifies the numeric user ID of the owner of the file.
+      9    GROUP_ID	        4002  - Specifies the numeric group ID of the file's group.
+      10   MODE		        drwxr-x---  - ( see details below )
+      11   ACCESS_TIME	        1455931754  - represents atime
+      12   MODIFICATION_TIME    1455931754  - represents mtime
+      13   BLOCKSIZE	        131072      - Specifies the size, in bytes, of each block of the file
+      14   CHANGE_TIME        	1455931754  - represents ctime
+      15   -- Separator
+      16   FILENAME	        %2Fproject%2F.snapshots%2F2016-02-22%2Fprojectdirs%2Fstar%2Fpwg%2Fstarhf%2Fsimkom...... - Filename with full path
+  */
 
   Int_t nlines = 0;
 
-  // -- read in first line
-  fin >> firstLine; 
-
-  // -- tokenize first line
-  TObjArray *tokenizedFirstLine = firstLine.Tokenize("|");
-  if (!tokenizedFirstLine) 
-    printf("Error tokenizing first line %d: %s\n", nlines, firstLine.Data());
-  else {
-      
-    // -- check unfinished lines
-    if (tokenizedFirstLine->GetEntriesFast() != 11 ) 
-      printf("Error processing line %d: %s\n", nlines, firstLine.Data());
-    else {
-      size    = ((static_cast<TObjString*>(tokenizedFirstLine->At(1)))->String()).Atoi();
-      entries = ((static_cast<TObjString*>(tokenizedFirstLine->At(2)))->String()).Atoi();
-      uid     = ((static_cast<TObjString*>(tokenizedFirstLine->At(3)))->String()).Atoi();
-      gid     = ((static_cast<TObjString*>(tokenizedFirstLine->At(4)))->String()).Atoi();
-      atime   = ((static_cast<TObjString*>(tokenizedFirstLine->At(6)))->String()).Atoi();
-      mtime   = ((static_cast<TObjString*>(tokenizedFirstLine->At(7)))->String()).Atoi();
-      ctime   = ((static_cast<TObjString*>(tokenizedFirstLine->At(9)))->String()).Atoi();
-      name    = ((static_cast<TObjString*>(tokenizedFirstLine->At(10)))->String());
-    }
-  }
-
   // -- Loop of file - line-by-line
   while (1) {
-    TString line;
-    
-    // -- read in
-    fin >> line; 
 
+    string line;
+    getline (fin, line);
+        
     // -- break at at of file
     if (fin.eof()) {
       printf("Processed %d lines of file %s\n", nlines, inFileName.Data());
@@ -697,33 +683,36 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
       break;
     }
 
+    TString sLine(line);
+
     // -- tokenize line
-    TObjArray *tokenizedLine = line.Tokenize("|");
+    TObjArray *tokenizedLine = sLine.Tokenize(" ");
     if (!tokenizedLine) 
-      printf("Error tokenizing line %d: %s\n", nlines, line.Data());
+      printf("Error tokenizing line %d: %s\n", nlines, sLine.Data());
     else {
-      
-      // -- check unfinished lines (= left overs 
-      if (tokenizedLine->GetEntriesFast() != 11 ) {
-	//	printf("Error processing line %d: %s[ ]%s\n", nlines, name.Data(), line.Data());
-	name += " ";
-	name += line;
-	continue;
+
+      // -- check for wrong lines
+      if (tokenizedLine->GetEntriesFast() != 17 ) {
+	printf("Error processing line %d: %s\n", nlines, sLine.Data());
       }
       else {
-	// -- Add last row , entries == 1 -> only files
-	if (entries == 1)
-	  fileRootNode->AddFile(name, size, atime, ctime, mtime);
+	TString attr = ((static_cast<TObjString*>(tokenizedLine->At(6)))->String());
 
-	// -- fill next row
-	size    = ((static_cast<TObjString*>(tokenizedLine->At(1)))->String()).Atoi();
-	entries = ((static_cast<TObjString*>(tokenizedLine->At(2)))->String()).Atoi();
-	uid     = ((static_cast<TObjString*>(tokenizedLine->At(3)))->String()).Atoi();
-	gid     = ((static_cast<TObjString*>(tokenizedLine->At(4)))->String()).Atoi();
-	atime   = ((static_cast<TObjString*>(tokenizedLine->At(6)))->String()).Atoi();
-	mtime   = ((static_cast<TObjString*>(tokenizedLine->At(7)))->String()).Atoi();
-	ctime   = ((static_cast<TObjString*>(tokenizedLine->At(9)))->String()).Atoi();
-	name    = ((static_cast<TObjString*>(tokenizedLine->At(10)))->String());
+	// -- Process files only 
+	if (attr.Contains("F")) {
+	  // -- fill next row
+	  ULong64_t size    = ((static_cast<TObjString*>(tokenizedLine->At(3)))->String()).Atoi();
+	  
+	  // Int_t uid    = ((static_cast<TObjString*>(tokenizedLine->At(8)))->String()).Atoi();
+	  // Int_t gid    = ((static_cast<TObjString*>(tokenizedLine->At(9)))->String()).Atoi();
+	  
+	  Int_t   atime   = ((static_cast<TObjString*>(tokenizedLine->At(11)))->String()).Atoi();
+	  Int_t   mtime   = ((static_cast<TObjString*>(tokenizedLine->At(12)))->String()).Atoi();
+	  Int_t   ctime   = ((static_cast<TObjString*>(tokenizedLine->At(14)))->String()).Atoi();
+	  TString name    = ((static_cast<TObjString*>(tokenizedLine->At(16)))->String()).ReplaceAll("%2F", "|||");
+
+	  fileRootNode->AddFile(name, size, atime, ctime, mtime);
+	}
       }
 
       tokenizedLine->Clear();
@@ -735,48 +724,39 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
     // -- print info on status
     if (!(nlines%100000))
       printf("Processing line %d of file %s\n", nlines, inFileName.Data());
-  }
-
-  // -- Add last row , entries == 1 -> only files
-  if (entries == 1)
-    fileRootNode->AddFile(name, size, atime, ctime, mtime);
+  } // while (1) {
 }
 
 // ________________________________________________________________________________
 void processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode) {
   // -- loop over file and add to fileRootNode node
 
+
+  cout << "PROCESS PROJECTA" << endl;
   // -- fields of input file
   /*
-    0  uid      59535    
-    1  gid      5008    
-    2  size     3790800  
-    3  xtime    2015-07-24 18:15:56.378265  
-    4  mtime    2015-07-24 19:49:31.803646  
-    5  atime    2015-07-24 18:15:56.380693  
-    6  ctime    2015-07-24 18:15:56.378265  
-    7  pathname /global/projecta/projectdirs/starprod/embedding/AuAu20....
+    0  InodeNum            1689600     
+    1  GenNum              1674580975   
+    2  Owner               59535    
+    3  Group               5008     
+    4  File Size           39428                  
+    5  Creation Time       1451355949                  
+    6  Change Time         1451362158                  
+    7  Modification Time   1451355949                  
+    8  Access Time         1451355949  
+    9  File Name           /global/projecta/projectdirs/starprod/embedding/AuAu20....
   */
   
   ULong64_t size;
-  Int_t     uid, gid;
-  TString   atimeS, ctimeS, mtimeS, xtimeS;
-  TString   atimeS2, ctimeS2, mtimeS2, xtimeS2;
+  Int_t     inode, genNum, uid, gid, ctime, xtime, mtime, atime;
   TString   name;
-
-  // -- ignore first row of headers
-  // fin.ignore(10000,'\n');
 
   // -- Loop of file - line-by-line
   Int_t nlines = 0;
   while (1) {
 
     // -- read in
-    fin >> uid >> gid >> size >> 
-      atimeS >> atimeS2 >> 
-      mtimeS >> mtimeS2 >> 
-      ctimeS >> ctimeS2 >> 
-      xtimeS >> xtimeS2 >> name;
+    fin >> inode >> genNum >> uid >> gid >> size >> ctime >> xtime >> mtime >> atime >> name;
     
     // -- break at at of file
     if (fin.eof()) {
@@ -784,27 +764,14 @@ void processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode)
       break;
     }
     
+    cout << nlines << " " << size << " " << name << endl;
+
     // -- break if error occured during reading
     if (!fin.good()) {
       printf("Error after processing %d lines of file %s\n", nlines, inFileName.Data());
       break;
     }
     
-    UInt_t mtimeU = mtimeS.ReplaceAll("-", "").Atoi();
-    UInt_t atimeU = atimeS.ReplaceAll("-", "").Atoi();
-    UInt_t ctimeU = ctimeS.ReplaceAll("-", "").Atoi();
-    UInt_t xtimeU = xtimeS.ReplaceAll("-", "").Atoi();
-
-    TTimeStamp mtimeT(mtimeU, 0u, 0u, kFALSE);
-    TTimeStamp atimeT(atimeU, 0u, 0u, kFALSE);
-    TTimeStamp ctimeT(ctimeU, 0u, 0u, kFALSE);
-    TTimeStamp xtimeT(xtimeU, 0u, 0u, kFALSE);
-
-    Int_t mtime = mtimeT.GetSec();
-    Int_t atime = atimeT.GetSec();
-    Int_t ctime = ctimeT.GetSec();
-    //    Int_t xtime = xtimeT.GetSec();
-
     fileRootNode->AddFile(name, size, atime, ctime, mtime);
     
     ++nlines;
@@ -848,6 +815,8 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
       
   // -- set new folder structure
   node* final = root->AddNode(Form("%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
+
+
 
   node* project  = GetNodeProject(folder, idxFolder, idxStorage);
   final->AddChildren(project);
@@ -1145,11 +1114,13 @@ void parseGPFSDump(Int_t mode) {
       processFolder(root, 0, idxFolder);
 
     // -- loop over all outputs : starprod - PROJECTA
-    for (Int_t idxFolder = 2; idxFolder <3; ++idxFolder)
-      processFolder(root, 1, idxFolder);
+    // for (Int_t idxFolder = 2; idxFolder <3; ++idxFolder)
+    //   processFolder(root, 1, idxFolder);
+
+    return;
 
     root->PrintChildren(1);
-   
+
     // -------------------------------------------------------------------------
     // -- Save Parsed Tree
     TFile* outFile = TFile::Open("treeOutput.root", "RECREATE");
