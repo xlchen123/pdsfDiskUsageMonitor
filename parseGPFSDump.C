@@ -542,7 +542,6 @@ node* GetNodePwgSTAR(node* root);
 node* GetNodeUserRNC(node* root);
 
 void  processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode);
-void  processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode);
 
 node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder);
 
@@ -707,61 +706,6 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
 }
 
 // ________________________________________________________________________________
-void processFilePROJECTA(ifstream &fin, TString &inFileName, node *fileRootNode) {
-  // -- loop over file and add to fileRootNode node
-
-
-  cout << "PROCESS PROJECTA" << endl;
-  // -- fields of input file
-  /*
-    0  InodeNum            1689600     
-    1  GenNum              1674580975   
-    2  Owner               59535    
-    3  Group               5008     
-    4  File Size           39428                  
-    5  Creation Time       1451355949                  
-    6  Change Time         1451362158                  
-    7  Modification Time   1451355949                  
-    8  Access Time         1451355949  
-    9  File Name           /global/projecta/projectdirs/starprod/embedding/AuAu20....
-  */
-  
-  ULong64_t size;
-  Int_t     inode, genNum, uid, gid, ctime, xtime, mtime, atime;
-  TString   name;
-
-  // -- Loop of file - line-by-line
-  Int_t nlines = 0;
-  while (1) {
-
-    // -- read in
-    fin >> inode >> genNum >> uid >> gid >> size >> ctime >> xtime >> mtime >> atime >> name;
-    
-    // -- break at at of file
-    if (fin.eof()) {
-      printf("Processed %d lines of file %s\n", nlines, inFileName.Data());
-      break;
-    }
-    
-    cout << nlines << " " << size << " " << name << endl;
-
-    // -- break if error occured during reading
-    if (!fin.good()) {
-      printf("Error after processing %d lines of file %s\n", nlines, inFileName.Data());
-      break;
-    }
-    
-    fileRootNode->AddFile(name, size, atime, ctime, mtime);
-    
-    ++nlines;
-    
-    // -- print info on status
-    if (!(nlines%100000))
-      printf("Processing line %d of file %s\n", nlines, inFileName.Data());
-  }
-}
-
-// ________________________________________________________________________________
 node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
   // -- process folder
   
@@ -773,22 +717,16 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
   // -- open input file
   ifstream fin(sInFile);
   if (!fin.good()) {
-    printf ("File %s couldn't be opened!", sInFile.Data());
+    printf ("File %s couldn't be opened!\n", sInFile.Data());
     return NULL; 
   }
     
   // -- set global storage name
-  gStorage = gcStorage[0];
+  gStorage = gcStorage[idxStorage];
 
   // -- loop over folder
-  if (idxStorage == 0)
-    processFilePROJECT(fin, sInFile, folder);
-  else if (idxStorage == 1)
-    processFilePROJECTA(fin, sInFile, folder);
+  processFilePROJECT(fin, sInFile, folder);
 
-  // -- set global storage name
-  gStorage = "";
-  
   // -- close input file
   fin.close();
       
@@ -1095,8 +1033,8 @@ void parseGPFSDump(Int_t mode) {
       processFolder(root, 0, idxFolder);
 
     // -- loop over all outputs : starprod - PROJECTA
-    // for (Int_t idxFolder = 2; idxFolder <3; ++idxFolder)
-    //   processFolder(root, 1, idxFolder);
+    for (Int_t idxFolder = 2; idxFolder <3; ++idxFolder)
+      processFolder(root, 1, idxFolder);
 
     // -------------------------------------------------------------------------
     // -- Save Parsed Tree
