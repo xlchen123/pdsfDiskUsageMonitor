@@ -566,23 +566,7 @@ void  parseGPFSDump(Int_t mode = 0);
 node* GetNodeProjectDirs(node* root, Int_t idxFolder, Int_t idxStorage) {
   // -- Get the toplevel project nodes
 
-  node* topLevel = root->GetChild(Form("raw_%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
-
-  if (idxStorage == 0)
-    return (topLevel) ? topLevel->GetChild("projectdirs") : root->GetChild("projectdirs");
-
-  else if (idxStorage == 1) {
-    if (topLevel)
-      return topLevel->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
-    else {
-      if (root->GetChild(""))
-	return root->GetChild("")->GetChild("global")->GetChild("projecta")->GetChild("projectdirs");
-      else 
-	return NULL;
-    }
-  }
-
-  return NULL;
+  return root->GetChild(Form("raw_%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
 } 
 
 // ________________________________________________________________________________
@@ -642,7 +626,6 @@ node* GetNodeUserRNC(node* root) {
 void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) {
   // -- loop over file and add to fileRootNode node
 
-
   /*  here is the list of column names in the list
       0    INODE		20656 - Specifies the file's inode number
       1    GENERATION Number    65544 - Specifies a number that is incremented whenever an INODE number is reused.
@@ -701,15 +684,11 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
 	// -- Process files only 
 	if (attr.Contains("F")) {
 	  // -- fill next row
-	  ULong64_t size    = ((static_cast<TObjString*>(tokenizedLine->At(3)))->String()).Atoi();
-	  
-	  // Int_t uid    = ((static_cast<TObjString*>(tokenizedLine->At(8)))->String()).Atoi();
-	  // Int_t gid    = ((static_cast<TObjString*>(tokenizedLine->At(9)))->String()).Atoi();
-	  
-	  Int_t   atime   = ((static_cast<TObjString*>(tokenizedLine->At(11)))->String()).Atoi();
-	  Int_t   mtime   = ((static_cast<TObjString*>(tokenizedLine->At(12)))->String()).Atoi();
-	  Int_t   ctime   = ((static_cast<TObjString*>(tokenizedLine->At(14)))->String()).Atoi();
-	  TString name    = ((static_cast<TObjString*>(tokenizedLine->At(16)))->String()).ReplaceAll("%2F", "|||");
+	  ULong64_t size  = ((static_cast<TObjString*>(tokenizedLine->At(3)))->String()).Atoi();
+	  Int_t     atime = ((static_cast<TObjString*>(tokenizedLine->At(11)))->String()).Atoi();
+	  Int_t     mtime = ((static_cast<TObjString*>(tokenizedLine->At(12)))->String()).Atoi();
+	  Int_t     ctime = ((static_cast<TObjString*>(tokenizedLine->At(14)))->String()).Atoi();
+	  TString   name  = ((static_cast<TObjString*>(tokenizedLine->At(16)))->String()).ReplaceAll("%2F", "|||");
 
 	  fileRootNode->AddFile(name, size, atime, ctime, mtime);
 	}
@@ -815,12 +794,8 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
       
   // -- set new folder structure
   node* final = root->AddNode(Form("%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
+  final->AddChildren(folder);
 
-
-
-  node* project  = GetNodeProject(folder, idxFolder, idxStorage);
-  final->AddChildren(project);
-  
   // -- print folder
   printFolder(final);
 
@@ -835,6 +810,9 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
 void printFolder(node* folder) {
   // -- print the output of a folder in the js file
 
+  if (!folder)
+    return;
+
   // -- open output file
   ofstream fout(Form("output/outfile_%s.js", folder->GetName()));
   if (!fout.good()) {
@@ -842,7 +820,7 @@ void printFolder(node* folder) {
     return; 
   }
 
-  printf ("OutFile outfile_%s.js\n", folder->GetName());
+  //  printf ("OutFile outfile_%s.js\n", folder->GetName());
 
   // -- Print Tree 
   fout << "var "<< folder->GetName() << "DATA = [" << endl;
@@ -855,6 +833,9 @@ void printFolder(node* folder) {
 // ________________________________________________________________________________
 void printTable(node* rootIn, Int_t idxVersion) {
   // -- print the output of a folder in html table
+
+  if (!rootIn)
+    return;
 
   // -- Sum up children for toplevel
   //  folder->SumAddChildren();
@@ -871,7 +852,7 @@ void printTable(node* rootIn, Int_t idxVersion) {
     return; 
   }
 
-  printf("OutFile %s_%s.txt\n", outName.Data(), rootIn->GetName());
+  //  printf("OutFile %s_%s.txt\n", outName.Data(), rootIn->GetName());
 
   // -- Fill table Entries
   if (idxVersion == 1) 
@@ -979,7 +960,7 @@ node* processEmbedding(node* rootIn, node* rootOut, Int_t version) {
   node* embedding = GetNodeEmbedding(rootIn);
   if (!embedding)
     return NULL;
-  
+
   // -- Fill ---------------------
   if (version == 2) {
     embeddingRoot->AddChildren(embedding);
@@ -1117,10 +1098,6 @@ void parseGPFSDump(Int_t mode) {
     // for (Int_t idxFolder = 2; idxFolder <3; ++idxFolder)
     //   processFolder(root, 1, idxFolder);
 
-    return;
-
-    root->PrintChildren(1);
-
     // -------------------------------------------------------------------------
     // -- Save Parsed Tree
     TFile* outFile = TFile::Open("treeOutput.root", "RECREATE");
@@ -1215,6 +1192,11 @@ void parseGPFSDump(Int_t mode) {
     folder->SetMaxLevel(gcMaxLevel);
 
     // -------------------------------------------------------------------------
+
+    // cout  << " >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
+    // cout <<  root->GetTitle() << endl;
+    // root->PrintChildren(2);
+    // cout  << " >>>>>>>>>>>>>>>>>>>>>>>>>>>>>> " << endl;
   }
   
   return;
