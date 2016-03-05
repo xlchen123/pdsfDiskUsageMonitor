@@ -14,9 +14,6 @@ pushd ${BASEPATH} > /dev/null
 inputPath=/project/statistics/LIST
 
 
-
-
-
 # -- get latest PROJECT/PROJECTA folder
 
 for prjFolder in PROJECT PROJECTA  ; do
