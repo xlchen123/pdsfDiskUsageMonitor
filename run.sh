@@ -10,12 +10,10 @@ BASEPATH=/global/homes/j/jthaeder/pdsfDiskUsageMonitor
 reCreateTree=0
 
 pushd ${BASEPATH} > /dev/null
-
 inputPath=/project/statistics/LIST
 
 
 # -- get latest PROJECT/PROJECTA folder
-
 for prjFolder in PROJECT PROJECTA  ; do
 
     if [ "${prjFolder}" == "project" ] ; then 
