@@ -12,9 +12,8 @@ reCreateTree=0
 pushd ${BASEPATH} > /dev/null
 inputPath=/project/statistics/LIST
 
-
 # -- get latest PROJECT/PROJECTA folder
-for prjFolder in PROJECT PROJECTA  ; do
+for prjFolder in project projecta  ; do
 
     if [ "${prjFolder}" == "project" ] ; then 
 	prjPath=tlproject2
@@ -24,19 +23,22 @@ for prjFolder in PROJECT PROJECTA  ; do
     
     projectFolders=`ls -t ${inputPath}/${prjPath}/ | head -n 10 | sort -r 2> /dev/null`
     for folder in $projectFolders ; do
-	
+
 	# -- Get file in latest folder
 	inFile=`ls ${inputPath}/${prjPath}/${folder}/*list.allfiles`
 	if [ ! -f ${inFile} ] ; then 
 	    continue
 	fi
 	
+	# -- Check the latest file is completed 
+	if [ ! -f ${inFile}.completed ] ; then 
+	    continue
+	fi
+
 	# -- Get old modification dates and check if tree recreation has to be run
-	modDatePROJECT=${folder}
-	
-	if [ -f modDatePROJECT.txt ] ; then 
-	    oldmodDatePROJECT=`cat modDate${prjFolder}.txt`
-	    if [ "$oldmodDatePROJECT" == "$modDatePROJECT" ] ; then 
+	if [ -f modDate_${prjFolder}.txt ] ; then 
+	    oldmodDate=`cat modDate_${prjFolder}.txt`
+	    if [ "$oldmodDate" == "$folder" ] ; then 
 		break
 	    fi
 	fi
@@ -52,7 +54,7 @@ for prjFolder in PROJECT PROJECTA  ; do
 	else
 	    mkdir -p ${prjFolder}
 	fi 
-	
+
 	# -- Get input files for parsing
 	cat ${inFile} | grep "%2Fprojectdirs%2Fstarprod%2F" > ${prjFolder}/prj-starprod.list
 	sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-starprod.list
@@ -65,9 +67,8 @@ for prjFolder in PROJECT PROJECTA  ; do
 	    sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-alice.list
 	fi
 
-	echo $modDatePROJECT > modDate${prjFolder}.txt
-	
-	projectFolder=$folder
+	echo $folder > modDate_${prjFolder}.txt
+
 	break
     done
 done

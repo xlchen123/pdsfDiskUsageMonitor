@@ -34,10 +34,8 @@
 *.root
 
 # mod files
-modDateELIZA1.txt
-modDateELIZA2.txt
-modDatePROJECT.txt
-modDatePROJECTA.txt
+modDate_project.txt
+modDate_projecta.txt
 
 # temporary folder
 project/
