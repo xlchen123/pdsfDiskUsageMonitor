@@ -56,15 +56,19 @@ for prjFolder in project projecta  ; do
 	fi 
 
 	# -- Get input files for parsing
-	cat ${inFile} | grep "%2Fprojectdirs%2Fstarprod%2F" > ${prjFolder}/prj-starprod.list
-	sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-starprod.list
 
 	if [ "${prjFolder}" == "project" ] ; then 
+	    cat ${inFile} | grep "%2Fprojectdirs%2Fstarprod%2F" > ${prjFolder}/prj-starprod.list
+	    sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-starprod.list
+
 	    cat ${inFile} | grep "%2Fprojectdirs%2Fstar%2F" > ${prjFolder}/prj-star.list
 	    sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-star.list
 	    
 	    cat ${inFile} | grep "%2Fprojectdirs%2Falice%2F" > ${prjFolder}/prj-alice.list
 	    sed -i "s/%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-alice.list
+	else
+	    cat ${inFile} | grep "%2Fprojectdirs%2Fstarprod%2F" > ${prjFolder}/prj-starprod.list
+	    sed -i "s/%2Fglobal%2F${prjFolder}%2F.snapshots%2F${folder}%2Fprojectdirs%2F//" ${prjFolder}/prj-starprod.list
 	fi
 
 	echo $folder > modDate_${prjFolder}.txt
@@ -73,7 +77,7 @@ for prjFolder in project projecta  ; do
     done
 done
 
-reCreateTree=1   #debug
+#reCreateTree=1   #debug
 
 # -- recreate input Trees
 # -------------------------------------------------------
@@ -84,8 +88,6 @@ if [ $reCreateTree -eq 1 ] ; then
     fi
 
     mkdir -p output
-
-    # rm -f treeOutput.root
 
     # -- run script
     ${BASEPATH}/parseGPFSDump.tcsh ${BASEPATH} 0

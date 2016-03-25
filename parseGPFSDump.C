@@ -533,13 +533,13 @@ private:
 };
 
 // --------------------------------------------------------------------------------------
-node* GetNodeProjectDirs(node* root, Int_t idxFolder, Int_t idxStorage);
-node* GetNodeProject(node* root, Int_t idxFolder, Int_t idxStorage);
+node* GetNodeProjectDirs(node** rootIn, Int_t idxStorage, Int_t idxFolder);
+node* GetNodeProject(    node** rootIn, Int_t idxStorage, Int_t idxFolder);
 
-node* GetNodeEmbedding(node* root);
-node* GetNodePicoDsts(node* root, Int_t idxStorage);
-node* GetNodePwgSTAR(node* root);
-node* GetNodeUserRNC(node* root);
+node* GetNodeEmbedding(node** rootIn);
+node* GetNodePicoDsts( node** rootIn, Int_t idxStorage);
+node* GetNodePwgSTAR(  node** rootIn);
+node* GetNodeUserRNC(  node** rootIn);
 
 void  processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode);
 
@@ -548,13 +548,14 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder);
 void  printFolder(node* folder);
 void  printTable(node* rootIn, Int_t idxVersion = 1);
 
-node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage);
-node* processUser(node* rootIn, node* rootOut, Int_t idxGroup);
-node* processEmbedding(node* rootIn, node* rootOut, Int_t version);
-node* processPicoDsts(node* rootIn, node* rootOut, Int_t version = 1);
-node* processPwgSTAR(node* rootIn, node* rootOut);
+node* processStorage(  node** rootIn, node* rootOut);
+node* processUser(     node** rootIn, node* rootOut, Int_t idxGroup);
+node* processEmbedding(node** rootIn, node* rootOut, Int_t version);
+node* processPicoDsts( node** rootIn, node* rootOut, Int_t version = 1);
+node* processPwgSTAR(  node** rootIn, node* rootOut);
 
-void  parseGPFSDump(Int_t mode = 0);
+void  parseGPFSDump(Int_t mode = 0, Int_t parseIdx = 0);
+
 // --------------------------------------------------------------------------------------
 
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
@@ -562,39 +563,39 @@ void  parseGPFSDump(Int_t mode = 0);
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 
 // ________________________________________________________________________________
-node* GetNodeProjectDirs(node* root, Int_t idxFolder, Int_t idxStorage) {
+node* GetNodeProjectDirs(node** rootIn, Int_t idxStorage, Int_t idxFolder) {
   // -- Get the toplevel project nodes
 
-  return root->GetChild(Form("raw_%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
+  return rootIn[idxStorage]->GetChild(Form("raw_%s_%s", gcStorage[idxStorage], gcProjectFolder[idxFolder]));
 } 
 
 // ________________________________________________________________________________
-node* GetNodeProject(node* root, Int_t idxFolder, Int_t idxStorage) {
+node* GetNodeProject(node** rootIn, Int_t idxStorage, Int_t idxFolder) {
   // -- Get the toplevel project nodes
 
-  node *projectDirs = GetNodeProjectDirs(root, idxFolder, idxStorage);
+  node *projectDirs = GetNodeProjectDirs(rootIn, idxStorage, idxFolder);
   return (projectDirs) ? projectDirs->GetChild(gcProjectFolder[idxFolder]) : NULL;
 } 
 
 // ________________________________________________________________________________
-node* GetNodeEmbedding(node* root) {
+node* GetNodeEmbedding(node** rootIn) {
   // -- Get embedding node in projecta/embedding
 
-  node* starprod = GetNodeProject(root, 2, 1);
+  node* starprod = GetNodeProject(rootIn, 1, 2);
   return (starprod) ? starprod->GetChild("embedding") : NULL;
 }
 
 // ________________________________________________________________________________
-node* GetNodePicoDsts(node* root, Int_t idxStorage) {
+node* GetNodePicoDsts(node** rootIn, Int_t idxStorage) {
   // -- get picoDsts node on storage
   
   // -- project 
-  if (idxStorage == 0) {
-    node* star = GetNodeProject(root, 1, 0);
+  if (idxStorage == 0) { // --- we should get rid of this data
+    node* star = GetNodeProject(rootIn, 0, 1);
     return (star) ? star->GetChild("starprod")->GetChild("picodsts") : NULL;
   }
   else if (idxStorage == 1) {
-    node* starprod = GetNodeProject(root, 2, 0);
+    node* starprod = GetNodeProject(rootIn, 1, 2);
     return (starprod) ? starprod->GetChild("picodsts") : NULL;
   }
 
@@ -602,18 +603,18 @@ node* GetNodePicoDsts(node* root, Int_t idxStorage) {
 }
 
 // ________________________________________________________________________________
-node* GetNodePwgSTAR(node* root) {
+node* GetNodePwgSTAR(node** root) {
   // -- Get PWGs
 
-  node* star = GetNodeProject(root, 1, 0);
+  node* star = GetNodeProject(root, 0, 1);
   return (star) ? star->GetChild("pwg") : NULL;
 }
 
 // ________________________________________________________________________________
-node* GetNodeUserRNC(node* root) {
+node* GetNodeUserRNC(node** rootIn) {
   // -- Get PWGs
 
-  node* starprod = GetNodeProject(root, 2, 0);
+  node* starprod = GetNodeProject(rootIn, 0, 2);
   return (starprod) ? starprod->GetChild("rnc") : NULL;
 }
 
@@ -674,8 +675,8 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
     else {
 
       // -- check for wrong lines
-      if (tokenizedLine->GetEntriesFast() != 17 ) {
-	printf("Error processing line %d: %s\n", nlines, sLine.Data());
+      if (tokenizedLine->GetEntriesFast() < 17 ) {
+	printf("Error processing line %d: %s (%d tokens)\n", nlines, sLine.Data(), tokenizedLine->GetEntriesFast());
       }
       else {
 	TString attr = ((static_cast<TObjString*>(tokenizedLine->At(6)))->String());
@@ -689,6 +690,14 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
 	  Int_t     ctime = ((static_cast<TObjString*>(tokenizedLine->At(14)))->String()).Atoi();
 	  TString   name  = ((static_cast<TObjString*>(tokenizedLine->At(16)))->String()).ReplaceAll("%2F", "|||");
 
+	  // -- handle file names with spaces
+	  if (tokenizedLine->GetEntriesFast() > 17 ) {
+	    for (Int_t idx = 17; idx < tokenizedLine->GetEntriesFast(); ++idx){
+	      name  += " ";
+	      name  += ((static_cast<TObjString*>(tokenizedLine->At(idx)))->String()).ReplaceAll("%2F", "|||");
+	    }
+	  }
+	  
 	  fileRootNode->AddFile(name, size, atime, ctime, mtime);
 	}
       }
@@ -700,8 +709,8 @@ void processFilePROJECT(ifstream &fin, TString &inFileName, node *fileRootNode) 
     ++nlines;
     
     // -- print info on status
-    if (!(nlines%100000))
-      printf("Processing line %d of file %s\n", nlines, inFileName.Data());
+    //    if (!(nlines%100000))
+    //      printf("Processing line %d of file %s\n", nlines, inFileName.Data());
   } // while (1) {
 }
 
@@ -840,34 +849,35 @@ void printTable(node* rootIn, Int_t idxVersion) {
   foutSum.close();
 }
 
-
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 // -- Process use cases
 // -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
 
 // ________________________________________________________________________________
-node* processStorage(node* rootIn, node* rootOut, Int_t idxStorage) {
+node* processStorage(node** rootIn, node* rootOut) {
   // -- process storage 
   
-  // -- get storage rootNode
-  node* storage = rootOut->AddNode(gcStorage[idxStorage]);
-
-  // -- loop over all folder
-  for (Int_t idxFolder = 0; idxFolder < 3; ++idxFolder) {
-    node* projectdirs = GetNodeProjectDirs(rootIn, idxFolder, idxStorage);
-    if (!projectdirs) 
-      continue;
-    storage->AddChildren(projectdirs);
+  for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage) {
+  
+    // -- get storage rootNode
+    node* storage = rootOut->AddNode(gcStorage[idxStorage]);
+    
+    // -- loop over all folder
+    for (Int_t idxFolder = 0; idxFolder < 3; ++idxFolder) {
+      node* projectdirs = GetNodeProjectDirs(rootIn, idxStorage, idxFolder);
+      if (projectdirs) 
+	storage->AddChildren(projectdirs);
+    }
+    
+    // -- print outfile
+    printFolder(storage);
   }
 
-  // -- print outfile
-  printFolder(storage);
-
-  return storage;
+  return rootOut;
 }
 
 // ________________________________________________________________________________
-node* processUser(node* rootIn, node* rootOut, Int_t idxGroup) {
+node* processUser(node** rootIn, node* rootOut, Int_t idxGroup) {
   // -- process User for RNC and ALICE
   
   // -- add storage rootNode
@@ -885,7 +895,7 @@ node* processUser(node* rootIn, node* rootOut, Int_t idxGroup) {
 }
 
 // ________________________________________________________________________________
-node* processEmbedding(node* rootIn, node* rootOut, Int_t version) {
+node* processEmbedding(node** rootIn, node* rootOut, Int_t version) {
   // -- process Embedding files for STAR
   //     V1 : trgSetupName > merged particles > production
   //     V2 : trgSetupName > particles > production
@@ -937,9 +947,8 @@ node* processEmbedding(node* rootIn, node* rootOut, Int_t version) {
   return embeddingRoot;
 }
 
-
 // ________________________________________________________________________________
-node* processPicoDsts(node* rootIn, node* rootOut, Int_t version) {
+node* processPicoDsts(node** rootIn, node* rootOut, Int_t version) {
   // -- process PicoDsts files for STAR
 
   // -- add picoDsts rootNode
@@ -990,7 +999,7 @@ node* processPicoDsts(node* rootIn, node* rootOut, Int_t version) {
 }
 
 // ________________________________________________________________________________
-node* processPwgSTAR(node* rootIn, node* rootOut) {
+node* processPwgSTAR(node** rootIn, node* rootOut) {
   // -- process PWG files for STAR
   
   // -- add pwgSTAR rootNode
@@ -1013,32 +1022,30 @@ node* processPwgSTAR(node* rootIn, node* rootOut) {
 // ---------------------------------------------------------------------------------------------------------------------------------------------  
 
 // ________________________________________________________________________________
-void parseGPFSDump(Int_t mode) {
+void parseGPFSDump(Int_t mode, Int_t parseIdx) {
   // -- parse input file
-  //    mode: 0 - parse
+  //    mode: 0 - parse (default)
   //          1 - print
-  //          2 - parse and print
+  //    parseIdx: 0 - project (default)
+  //              1 - projecta
+  //        -> Only relevant for mode 0
 
   // -- root node
   node *root;
 
   // -------------------------------------------------------------------------
-  // -------------------------------------------------------------------------
   // -- parse GPFS Dump and write tree file
-  if (mode == 0 || mode == 2) {
+  if (mode == 0) {
     root = new node;
 
     // -- loop over all outputs : alice, star, starprod - PROJECT
+    // -- loop over all outputs : starprod              - PROJECTA
     for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder)
-      processFolder(root, 0, idxFolder);
-
-    // -- loop over all outputs : starprod - PROJECTA
-    for (Int_t idxFolder = 2; idxFolder <3; ++idxFolder)
-      processFolder(root, 1, idxFolder);
+      processFolder(root, parseIdx, idxFolder);
 
     // -------------------------------------------------------------------------
     // -- Save Parsed Tree
-    TFile* outFile = TFile::Open("treeOutput.root", "RECREATE");
+    TFile* outFile = TFile::Open(Form("treeOutput_%s.root", gcStorage[parseIdx]), "RECREATE");
     if (outFile) {
       outFile->cd();
       root->Write();
@@ -1049,23 +1056,29 @@ void parseGPFSDump(Int_t mode) {
   // -------------------------------------------------------------------------
   // -------------------------------------------------------------------------
   // -- read tree file and print 
-  if (mode == 1 || mode == 2) {
-    
-    TFile* fin = TFile::Open("treeOutput.root");
-    if (!fin) {
-      printf("File treeOutput.root couldn't be opened!\n");
-      return;
+  if (mode == 1) {
+
+    TFile* fin[2]; 
+    node* rootIn[2];
+
+    for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage) {
+      fin[idxStorage] = TFile::Open(Form("treeOutput_%s.root", gcStorage[idxStorage]));    
+      if (!fin[idxStorage]) {
+	printf("File treeOutput_%s.root couldn't be opened!\n", gcStorage[idxStorage]);
+	return;
+      }
+
+      rootIn[idxStorage] = static_cast<node*>(fin[idxStorage]->Get("root"));
     }
-    
-    root = static_cast<node*>(fin->Get("root"));
+
+    node* root = new node;
 
     // -------------------------------------------------------------------------
     // -- loop over storage disks
+    cout <<  "STORAGE" << endl;
     // -------------------------------------------------------------------------
     node* storage = root->AddNode("storage");
-
-    for (Int_t idxStorage = 0; idxStorage < 2; ++idxStorage)
-      processStorage(root, storage, idxStorage);
+    processStorage(rootIn, storage);
 
     // -------------------------------------------------------------------------
     // -- create user only
@@ -1073,7 +1086,7 @@ void parseGPFSDump(Int_t mode) {
     node* user = root->AddNode("user");
 
     for (Int_t idxGroup = 0; idxGroup < 2; ++idxGroup) {
-      node* folder = processUser(root, user, idxGroup);  
+      node* folder = processUser(rootIn, user, idxGroup);  
       printFolder(folder);
       printTable(folder, 1);
     }
@@ -1086,7 +1099,7 @@ void parseGPFSDump(Int_t mode) {
     //    V2 : trgSetupName > particles > production
 
     for (Int_t idxVersion = 1; idxVersion < 3; ++idxVersion) {
-      node* folder = processEmbedding(root, embedding, idxVersion);
+      node* folder = processEmbedding(rootIn, embedding, idxVersion);
       printFolder(folder);
       
       if (idxVersion == 1) {
@@ -1104,7 +1117,7 @@ void parseGPFSDump(Int_t mode) {
     //    V2 : picoDsts > storage
     //    V3 : storage > picoDsts
     for (Int_t idxVersion = 1; idxVersion < 4; ++idxVersion) {
-      node* folder = processPicoDsts(root, picoDsts, idxVersion);
+      node* folder = processPicoDsts(rootIn, picoDsts, idxVersion);
       folder->SetMaxLevel(gcMaxLevel+1);
 
       printFolder(folder);
@@ -1121,7 +1134,7 @@ void parseGPFSDump(Int_t mode) {
     // -------------------------------------------------------------------------
     node* pwgSTAR = root->AddNode("pwgstar");
 
-    node* folder = processPwgSTAR(root, pwgSTAR);
+    node* folder = processPwgSTAR(rootIn, pwgSTAR);
     folder->SetMaxLevel(gcMaxLevel+3);
 
     printFolder(folder);

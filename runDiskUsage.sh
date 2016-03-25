@@ -11,8 +11,8 @@ else
     BASEPATH=$1
 fi
 
-modDatePROJECT=`cat modDatePROJECT.txt`
-modDatePROJECTA=`cat modDatePROJECTA.txt`
+modDatePROJECT=`cat modDate_project.txt`
+modDatePROJECTA=`cat modDate_projecta.txt`
 
 now=`date +'%F %H:%m'`
 
