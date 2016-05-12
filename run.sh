@@ -25,7 +25,7 @@ for prjFolder in project projecta  ; do
     for folder in $projectFolders ; do
 
 	# -- Get file in latest folder
-	inFile=`ls ${inputPath}/${prjPath}/${folder}/*list.allfiles`
+	inFile=`ls ${inputPath}/${prjPath}/${folder}/*list.allfiles 2> /dev/null`
 	if [ ! -f ${inFile} ] ; then 
 	    continue
 	fi
