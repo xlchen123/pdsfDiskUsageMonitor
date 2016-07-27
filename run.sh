@@ -7,6 +7,13 @@
 
 BASEPATH=/global/homes/j/jthaeder/pdsfDiskUsageMonitor
 
+if [ $# -eq 1 ] ; then 
+    LOGDIR=$1
+    isSGE=1
+else
+    isSGE=0
+fi
+
 reCreateTree=0
 
 pushd ${BASEPATH} > /dev/null
@@ -22,10 +29,11 @@ for prjFolder in project projecta  ; do
     fi
     
     projectFolders=`ls -t ${inputPath}/${prjPath}/ | head -n 10 | sort -r 2> /dev/null`
+
     for folder in $projectFolders ; do
 
 	# -- Get file in latest folder
-	inFile=`ls ${inputPath}/${prjPath}/${folder}/*list.allfiles 2> /dev/null`
+	inFile=`ls ${inputPath}/${prjPath}/${folder}/*list.allfiles | sort | head -n 1 2> /dev/null`
 	if [ ! -f ${inFile} ] ; then 
 	    continue
 	fi
@@ -36,7 +44,8 @@ for prjFolder in project projecta  ; do
 	fi
 
 	# -- Get old modification dates and check if tree recreation has to be run
-	if [ -f modDate_${prjFolder}.txt ] ; then 
+	#    Always run in SGE job
+	if [[ ! $isSGE && -f modDate_${prjFolder}.txt ]] ; then 
 	    oldmodDate=`cat modDate_${prjFolder}.txt`
 	    if [ "$oldmodDate" == "$folder" ] ; then 
 		break
@@ -77,8 +86,6 @@ for prjFolder in project projecta  ; do
     done
 done
 
-#reCreateTree=1   #debug
-
 # -- recreate input Trees
 # -------------------------------------------------------
 if [ $reCreateTree -eq 1 ] ; then
@@ -96,7 +103,7 @@ if [ $reCreateTree -eq 1 ] ; then
 fi
 
 # -- create html
-${BASEPATH}/runDiskUsage.sh  ${BASEPATH} 
+${BASEPATH}/runDiskUsage.sh ${BASEPATH} 
 
 popd > /dev/null
 
