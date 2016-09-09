@@ -5,7 +5,7 @@
 #
 ###################################################
 
-BASEPATH=/global/homes/j/jthaeder/pdsfDiskUsageMonitor
+BASEPATH=$PWD
 
 if [ $# -eq 1 ] ; then 
     LOGDIR=$1
