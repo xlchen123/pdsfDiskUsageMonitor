@@ -38,7 +38,7 @@ modDate_project.txt
 modDate_projecta.txt
 
 # temporary folder
-project/
-projecta/
+project
+projecta
 www
 output/
