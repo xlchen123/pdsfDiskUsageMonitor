@@ -5,7 +5,7 @@
 #
 ###################################################
 
-BASEPATH=/global/homes/j/jthaeder/pdsfDiskUsageMonitor
+BASEPATH=${HOME}/pdsfDiskUsageMonitor
 
 reCreateTree=0
 
