@@ -33,9 +33,6 @@ static const Int_t     gcMaxFiles[3]       = {2, 2, 4};
 // -- max depth to print nodes po
 static const Int_t     gcMaxLevel = 6;
 
-// -- current storage folder
-static TString         gStorage("");
-
 // _______________________________________________________________
 class node : public TNamed  {
 
@@ -53,7 +50,6 @@ public:
     faTime(-1.), 
     fcTime(2145916800),
     fmTime(-1.), 
-    fStorage(gStorage),
     fChildren(NULL) {
     // -- default constructor
     
@@ -75,7 +71,6 @@ public:
     faTime(-1),
     fcTime(2145916800),
     fmTime(-1),
-    fStorage(gStorage),
     fChildren(NULL) {
     // -- constructor for adding file only
 
@@ -525,8 +520,6 @@ private:
   Int_t     fcTime;
   Int_t     fmTime;
 
-  TString   fStorage;
-
   TList*    fChildren;
 
   ClassDef(node,1)
@@ -730,9 +723,6 @@ node* processFolder(node* root, Int_t idxStorage, Int_t idxFolder) {
     return NULL; 
   }
     
-  // -- set global storage name
-  gStorage = gcStorage[idxStorage];
-
   // -- loop over folder
   processFilePROJECT(fin, sInFile, folder);
 
