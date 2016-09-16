@@ -30,7 +30,7 @@ static const Char_t*   gcProjectFolder[3]  = {"alice", "star", "starprod"};
 
 static const Int_t     gcMaxFiles[3]       = {2, 2, 4};
 
-// -- max depth to print nodes po
+// -- max depth to print nodes to
 static const Int_t     gcMaxLevel = 6;
 
 // _______________________________________________________________
