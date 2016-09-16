@@ -1040,12 +1040,12 @@ void parseGPFSDump(Int_t mode, Int_t parseIdx, Int_t folderIdx) {
 
   // -------------------------------------------------------------------------
   // -- parse GPFS Dump and write tree file
+  //    inputs : alice, star, starprod - PROJECT
+  //    inputs : starprod              - PROJECTA
+
   if (mode == 0) {
     root = new node;
 
-    // -- loop over all outputs : alice, star, starprod - PROJECT
-    // -- loop over all outputs : starprod              - PROJECTA
-    //    for (Int_t idxFolder = 0; idxFolder <3; ++idxFolder)
 
     // -- process all folders seperatly 
     processFolder(root, parseIdx, folderIdx);
@@ -1084,7 +1084,7 @@ void parseGPFSDump(Int_t mode, Int_t parseIdx, Int_t folderIdx) {
     }
 
     node* root = new node;
-#if 0
+
     // -------------------------------------------------------------------------
     // -- loop over storage disks
     // -------------------------------------------------------------------------
@@ -1117,7 +1117,7 @@ void parseGPFSDump(Int_t mode, Int_t parseIdx, Int_t folderIdx) {
 	printTable(folder, 0);   // << - extended
       }
     }
-#endif
+
     // -------------------------------------------------------------------------
     // -- create picoDsts only
     // -------------------------------------------------------------------------
@@ -1138,7 +1138,7 @@ void parseGPFSDump(Int_t mode, Int_t parseIdx, Int_t folderIdx) {
 
       folder->SetMaxLevel(gcMaxLevel);
     }
-#if 0
+
     // -------------------------------------------------------------------------
     // -- create STAR PWGs only
     // -------------------------------------------------------------------------
@@ -1151,7 +1151,7 @@ void parseGPFSDump(Int_t mode, Int_t parseIdx, Int_t folderIdx) {
     printTable(folder, 1);
 
     folder->SetMaxLevel(gcMaxLevel);
-#endif
+
     // -------------------------------------------------------------------------
 
     // cout  << " >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" << endl;
