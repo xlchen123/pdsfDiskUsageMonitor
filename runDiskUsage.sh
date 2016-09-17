@@ -25,17 +25,18 @@ modDatePROJECTA=`cat modDate_projecta.txt`
 pushd ${BASEPATH} > /dev/null  
 
 # -- Check for WWW space
-if [ ! -h www ] ; then 
-    if [ `whoami` == "starofl" ] ; then
-	wwwPath=/project/projectdirs/star/www/diskUsage/
-    else
-	wwwPath=/project/projectdirs/star/www/`whoami`/diskUsage/
-    fi
+if [ `whoami` == "starofl" ] ; then
+    wwwPath=/project/projectdirs/star/www/diskUsage/
+else
+    wwwPath=/project/projectdirs/star/www/`whoami`/diskUsage/
+fi
 
+if [ ! -h www ] ; then 
     ln -sf $wwwPath www
 fi
 
 # -- Prepare www
+${wwwPath}
 if [ ! -d ${wwwPath} ] ; then 
     mkdir -p ${wwwPath}/data
     chmod -R 755 ${wwwPath}/data
