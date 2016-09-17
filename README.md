@@ -50,7 +50,7 @@ The resulting tree is then written as
 ###### Mode 1 - printing:
 
 Reading in the output files from mode 0 and printing
-different *trees* in JSON format, as well as *HTML table `<tr>* lines in text format.
+different *trees* in JSON format, as well as *HTML table <tr>* lines in text format.
 
 Output is stored in `output` folder.
 
