@@ -32,22 +32,44 @@ if [ ! -h www ] ; then
 	wwwPath=/project/projectdirs/star/www/`whoami`/diskUsage/
     fi
 
-    if [ ! -d ${wwwPath} ] ; then 
-	mkdir -p ${wwwPath}/data
-	chmod -R 755 ${wwwPath}/data
-    fi
-
     ln -sf $wwwPath www
 fi
 
-# -- cp output
+# -- Prepare www
+if [ ! -d ${wwwPath} ] ; then 
+    mkdir -p ${wwwPath}/data
+    chmod -R 755 ${wwwPath}/data
+
+    # -- Get styles
+    if [ !-d ${wwwPath}/style ] ; then 
+	cp -a ${BASEPATH}/www-template/style ${wwwPath}
+    fi
+
+    # -- Get java script functions
+    if [ ! -d ${wwwPath}/jsLibrary ] ; then 
+	cp -a ${BASEPATH}/www-template/jsLibrary ${wwwPath}
+    fi
+
+    # -- Get sorttable.js
+    if [ ! -f ${wwwPath}/jsLibrary/sorttable.js ] ; then 
+	pushd  ${wwwPath}/jsLibrary/ > /dev/null
+	wget http://www.kryogenix.org/code/browser/sorttable/sorttable.js
+	popd  > /dev/null
+    fi
+
+    # -- Get jqTree
+    if [ ! -d ${wwwPath}/jqTree ] ; then 
+	pushd  ${wwwPath}  > /dev/null
+	git clone https://github.com/mbraak/jqTree.git
+	popd  > /dev/null
+    fi
+fi
+
+# -- cp output to www
 cp output/outfile*.js www/data
 chmod 644 www/data/outfile*.js
 
-
-
-
-
+# -- Create webpages
 pushd www > /dev/null
 for ii in ${folderList} ; do 
     mkdir -p ${ii}
