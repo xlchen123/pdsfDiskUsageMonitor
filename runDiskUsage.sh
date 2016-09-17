@@ -36,7 +36,6 @@ if [ ! -h www ] ; then
 fi
 
 # -- Prepare www
-${wwwPath}
 if [ ! -d ${wwwPath} ] ; then 
     mkdir -p ${wwwPath}/data
     chmod -R 755 ${wwwPath}/data
