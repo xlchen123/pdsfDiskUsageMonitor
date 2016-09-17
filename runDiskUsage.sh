@@ -41,7 +41,7 @@ if [ ! -d ${wwwPath} ] ; then
     chmod -R 755 ${wwwPath}/data
 
     # -- Get styles
-    if [ !-d ${wwwPath}/style ] ; then 
+    if [ ! -d ${wwwPath}/style ] ; then 
 	cp -a ${BASEPATH}/www-template/style ${wwwPath}
     fi
 
