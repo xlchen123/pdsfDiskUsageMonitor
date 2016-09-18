@@ -64,7 +64,7 @@ for prjFolder in project projecta  ; do
 	# -- Get folders for local input files
 	prjFolderLocal=${SCRATCHPATH}/${prjFolder}
 	if [ -d ${prjFolderLocal} ] ; then 
-	    rm -f ${prjFolderLocal}
+	    rm -rf ${prjFolderLocal}
 	fi 
 	   
 	mkdir -p ${prjFolderLocal}
