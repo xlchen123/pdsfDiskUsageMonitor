@@ -5,17 +5,26 @@
 #
 ###################################################
 
+<<<<<<< HEAD
 BASEPATH=$PWD
-
-if [ $# -eq 1 ] ; then 
-    LOGDIR=$1
-    isSGE=1
-else
-    isSGE=0
-fi
+=======
+BASEPATH=${HOME}/pdsfDiskUsageMonitor
+>>>>>>> upstream/master
 
 reCreateTree=0
 
+# -- Setup scratch space for reduced GPFS dump output
+if [ -z "$SCRATCH" ] ; then 
+    SCRATCH="/scratch/`whoami`"
+fi
+
+SCRATCHPATH=${SCRATCH}/pdsfDiskUsageMonitor
+
+if [ ! -d $SCRATCHPATH ] ; then
+    mkdir -p $SCRATCHPATH
+fi
+
+# -- Get input data 
 pushd ${BASEPATH} > /dev/null
 inputPath=/project/statistics/LIST
 
@@ -33,8 +42,8 @@ for prjFolder in project projecta  ; do
     for folder in $projectFolders ; do
 
 	# -- Get file in latest folder
-	inFile=`ls ${inputPath}/${prjPath}/${folder}/*list.allfiles | sort | head -n 1 2> /dev/null`
-	if [ ! -f ${inFile} ] ; then 
+	inFile=`find ${inputPath}/${prjPath}/${folder}/ -name "*list.allfiles" | sort | head -n 1 2> /dev/null`
+	if [[ "${inFile}" == "" || ! -f ${inFile} ]] ; then 
 	    continue
 	fi
 	
@@ -44,8 +53,7 @@ for prjFolder in project projecta  ; do
 	fi
 
 	# -- Get old modification dates and check if tree recreation has to be run
-	#    Always run in SGE job
-	if [[ ! $isSGE && -f modDate_${prjFolder}.txt ]] ; then 
+	if [ -f modDate_${prjFolder}.txt ] ; then 
 	    oldmodDate=`cat modDate_${prjFolder}.txt`
 	    if [ "$oldmodDate" == "$folder" ] ; then 
 		break
@@ -57,12 +65,14 @@ for prjFolder in project projecta  ; do
 	# -- Create input files for parsing
 	# ----------------------------------------------
 	
-	# -- Get project folder
-	if [ -d ${prjFolder} ] ; then 
-	    rm -f ${prjFolder}/*.list
-	else
-	    mkdir -p ${prjFolder}
+	# -- Get folders for local input files
+	prjFolderLocal=${SCRATCHPATH}/${prjFolder}
+	if [ -d ${prjFolderLocal} ] ; then 
+	    rm -rf ${prjFolderLocal}
 	fi 
+	   
+	mkdir -p ${prjFolderLocal}
+	ln -sf ${prjFolderLocal} ${prjFolder}
 
 	# -- Get input files for parsing
 
@@ -97,9 +107,7 @@ if [ $reCreateTree -eq 1 ] ; then
     mkdir -p output
 
     # -- run script
-    ${BASEPATH}/parseGPFSDump.tcsh ${BASEPATH} 0
-
-    ${BASEPATH}/parseGPFSDump.tcsh ${BASEPATH} 1
+    ${BASEPATH}/parseGPFSDump.tcsh ${BASEPATH} 2
 fi
 
 # -- create html
