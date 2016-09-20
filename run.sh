@@ -5,11 +5,11 @@
 #
 ###################################################
 
-<<<<<<< HEAD
+#<<<<<<< HEAD
 BASEPATH=$PWD
-=======
-BASEPATH=${HOME}/pdsfDiskUsageMonitor
->>>>>>> upstream/master
+#=======
+#BASEPATH=${HOME}/pdsfDiskUsageMonitor
+#>>>>>>> upstream/master
 
 reCreateTree=0
 
